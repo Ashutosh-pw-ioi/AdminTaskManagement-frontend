@@ -17,6 +17,7 @@ interface EditModalProps {
   columns: Column[];
   onSave: (item: TableItem) => void;
   onCancel: () => void;
+  arrayFields?: string[]; 
 }
 
 const EditModal: React.FC<EditModalProps> = ({
@@ -25,6 +26,7 @@ const EditModal: React.FC<EditModalProps> = ({
   columns,
   onSave,
   onCancel,
+  arrayFields = [], // Default empty array
 }) => {
   const [editItem, setEditItem] = useState<TableItem | null>(null);
 
@@ -36,7 +38,20 @@ const EditModal: React.FC<EditModalProps> = ({
 
   const handleSave = () => {
     if (editItem) {
-      onSave(editItem);
+      // Process array fields before saving
+      const processedItem = { ...editItem };
+
+      arrayFields.forEach((field) => {
+        if (processedItem[field] && typeof processedItem[field] === "string") {
+          // Convert comma-separated string back to array
+          processedItem[field] = processedItem[field]
+            .split(",")
+            .map((item: string) => item.trim())
+            .filter((item: string) => item.length > 0);
+        }
+      });
+
+      onSave(processedItem);
     }
   };
 
@@ -44,6 +59,14 @@ const EditModal: React.FC<EditModalProps> = ({
     if (editItem) {
       setEditItem({ ...editItem, [key]: value });
     }
+  };
+
+  const getDisplayValue = (column: Column, value: any) => {
+    // If it's an array field, convert array to comma-separated string for editing
+    if (arrayFields.includes(column.key) && Array.isArray(value)) {
+      return value.join(", ");
+    }
+    return value || "";
   };
 
   const renderEditInput = (column: Column, value: any) => {
@@ -60,14 +83,29 @@ const EditModal: React.FC<EditModalProps> = ({
       );
     }
 
+    const isArrayField = arrayFields.includes(column.key);
+    const displayValue = getDisplayValue(column, value);
+
     return (
-      <input
-        type="text"
-        value={value || ""}
-        onChange={(e) => handleInputChange(column.key, e.target.value)}
-        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-        placeholder={`Enter ${column.label.toLowerCase()}`}
-      />
+      <div>
+        <input
+          type="text"
+          value={displayValue}
+          onChange={(e) => handleInputChange(column.key, e.target.value)}
+          className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder={
+            isArrayField
+              ? `Enter ${column.label.toLowerCase()} separated by commas`
+              : `Enter ${column.label.toLowerCase()}`
+          }
+        />
+        {isArrayField && (
+          <p className="text-xs text-gray-500 mt-1">
+            Separate multiple values with commas (e.g., "value1, value2,
+            value3")
+          </p>
+        )}
+      </div>
     );
   };
 
@@ -92,6 +130,9 @@ const EditModal: React.FC<EditModalProps> = ({
               <div key={column.key}>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {column.label}
+                  {arrayFields.includes(column.key) && (
+                    <span className="text-xs text-blue-600 ml-1">(Array)</span>
+                  )}
                 </label>
                 {renderEditInput(column, editItem?.[column.key])}
               </div>

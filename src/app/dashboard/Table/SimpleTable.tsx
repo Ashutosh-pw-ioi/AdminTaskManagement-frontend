@@ -288,6 +288,7 @@ const SimpleTable: React.FC<SimpleTableProps> = ({
         columns={columns}
         onSave={handleSaveEdit}
         onCancel={() => setEditItem(null)}
+        arrayFields={arrayFields}
       />
 
       <DeleteModal
