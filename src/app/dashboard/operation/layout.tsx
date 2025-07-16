@@ -23,26 +23,26 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
       id: "overview",
       label: "Overview",
       icon: ChartPie,
-      href: "/dashboard/admin/overview",
+      href: "/dashboard/operation/overview",
     },
     {
       id: "dailytasks",
       label: "Daily Tasks",
       icon: Repeat2,
-      href: "/dashboard/admin/dailytasks",
+      href: "/dashboard/operation/dailytasks",
     },
     {
       id: "newtasks",
       label: "New Tasks",
       icon: CirclePlus,
-      href: "/dashboard/admin/newtasks",
+      href: "/dashboard/operation/newtasks",
     },
 
     {
       id: "help",
       label: "Help",
       icon: HelpCircle,
-      href: "/dashboard/admin/help",
+      href: "/dashboard/operation/help",
     },
   ];
 
