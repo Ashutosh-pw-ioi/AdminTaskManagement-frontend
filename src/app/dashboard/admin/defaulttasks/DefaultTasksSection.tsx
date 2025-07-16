@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { DefaultTasks as InitialTasks } from "../constants/DefaultTasks";
-import EmptyList from "./EmptyList";
+import EmptyList from "../EmptyList";
 import { Plus } from "lucide-react";
 import SimpleTable from "../../Table/SimpleTable";
 import AddTaskModal from "./AddTaskModal";
@@ -75,7 +75,7 @@ export default function DefaultTasksSection() {
           />
         </div>
       ) : (
-        <EmptyList />
+        <EmptyList taskType={"default"}/>
       )}
     </div>
   );

@@ -1,9 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { Clipboard, ArrowUpRight } from "lucide-react";
 
-export default function EmptyList() {
+interface EmptyListProps {
+  taskType: string;
+}
+
+export default function EmptyList({ taskType }: EmptyListProps) {
   return (
     <div className="h-full flex items-center justify-center pb-10">
       <div className="flex flex-col items-center justify-center py-16 px-8 text-center">
@@ -12,11 +16,12 @@ export default function EmptyList() {
         </div>
 
         <h3 className="text-lg font-medium text-gray-800 mb-2">
-          No daily tasks created yet
+          No {taskType} tasks created yet
         </h3>
 
         <p className="text-[#1B3A6A] mb-4">
-          Click the <strong>Add Task</strong> button above to create daily tasks
+          Click the <strong>Add Task</strong> button above to create {taskType}{" "}
+          task
         </p>
 
         <div className="flex items-center text-sm">

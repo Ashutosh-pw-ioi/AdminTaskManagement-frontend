@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { NewTasks as InitialTasks } from "../constants/NewTasks";
-import EmptyList from "./EmptyList";
+import EmptyList from "../EmptyList";
 import { Plus } from "lucide-react";
 import SimpleTable from "../../Table/SimpleTable";
 import AddTaskModal from "./AddTaskModal";
@@ -85,7 +85,7 @@ export default function NewTasksSection() {
         </div>
       ) : (
         <div className="h-screen">
-          <EmptyList />
+          <EmptyList taskType={"new"} />
         </div>
       )}
     </div>
