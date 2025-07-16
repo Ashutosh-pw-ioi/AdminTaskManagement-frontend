@@ -36,7 +36,9 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
           <p className="text-gray-600">
             Are you sure you want to delete{" "}
             {itemName ? (
-              <span className="font-medium text-gray-800">"{itemName}"</span>
+              <span className="font-medium text-gray-800">
+                &quot;{itemName}&quot;
+              </span>
             ) : (
               "this record"
             )}

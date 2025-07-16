@@ -83,7 +83,7 @@ const SimpleTable: React.FC<SimpleTableProps> = ({
   const paginatedData = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     return filteredData.slice(start, start + itemsPerPage);
-  }, [filteredData, currentPage]);
+  }, [filteredData, currentPage, itemsPerPage]);
 
   const getBadgeColor = (value: string) => {
     const colors: Record<string, string> = {

@@ -17,7 +17,7 @@ interface EditModalProps {
   columns: Column[];
   onSave: (item: TableItem) => void;
   onCancel: () => void;
-  arrayFields?: string[]; 
+  arrayFields?: string[];
 }
 
 const EditModal: React.FC<EditModalProps> = ({
@@ -101,8 +101,8 @@ const EditModal: React.FC<EditModalProps> = ({
         />
         {isArrayField && (
           <p className="text-xs text-gray-500 mt-1">
-            Separate multiple values with commas (e.g., "value1, value2,
-            value3")
+            Separate multiple values with commas (e.g., &quot;value1, value2,
+            value3&quot;)
           </p>
         )}
       </div>
@@ -131,7 +131,7 @@ const EditModal: React.FC<EditModalProps> = ({
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {column.label}
                   {arrayFields.includes(column.key) && (
-                    <span className="text-xs text-blue-600 ml-1">(Array)</span>
+                    <span className="text-xs text-[#1B3A6A] ml-1">(List)</span>
                   )}
                 </label>
                 {renderEditInput(column, editItem?.[column.key])}
