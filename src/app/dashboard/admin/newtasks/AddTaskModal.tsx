@@ -138,10 +138,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                   value={status}
                   onChange={(e) =>
                     setStatus(
-                      e.target.value as
-                        | "pending"
-                        | "in-progress"
-                        | "completed"
+                      e.target.value as "pending" | "in-progress" | "completed"
                     )
                   }
                   className="appearance-none w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-[#1B3A6A] focus:border-[#1B3A6A]"
