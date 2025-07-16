@@ -71,6 +71,7 @@ export default function DefaultTasksSection() {
             onEdit={(item) => handleEdit(item as (typeof InitialTasks)[number])}
             onDelete={handleDelete}
             searchFields={["title", "description"]}
+            itemsPerPage={6}
           />
         </div>
       ) : (

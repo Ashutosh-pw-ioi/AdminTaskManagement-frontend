@@ -19,6 +19,8 @@ interface SimpleTableProps {
   onDelete?: (id: string | number) => void;
   badgeFields?: string[];
   searchFields?: string[];
+  itemsPerPage: number;
+  arrayFields?: string[]; // New prop to specify which fields are arrays
 }
 
 const SimpleTable: React.FC<SimpleTableProps> = ({
@@ -27,6 +29,8 @@ const SimpleTable: React.FC<SimpleTableProps> = ({
   onDelete,
   badgeFields = [],
   searchFields = [],
+  itemsPerPage,
+  arrayFields = [], // New prop with default empty array
 }) => {
   const [editItem, setEditItem] = useState<TableItem | null>(null);
   const [deleteId, setDeleteId] = useState<string | number | null>(null);
@@ -34,7 +38,6 @@ const SimpleTable: React.FC<SimpleTableProps> = ({
   const [search, setSearch] = useState("");
   const [tableData, setTableData] = useState<TableItem[]>(data);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
 
   useEffect(() => {
     setTableData(data);
@@ -60,11 +63,20 @@ const SimpleTable: React.FC<SimpleTableProps> = ({
       const fieldsToSearch = searchFields.length
         ? searchFields
         : Object.keys(item);
-      return fieldsToSearch.some((field) =>
-        String(item[field] ?? "")
+      return fieldsToSearch.some((field) => {
+        const value = item[field];
+        // Handle array fields in search
+        if (Array.isArray(value)) {
+          return value.some((element) =>
+            String(element ?? "")
+              .toLowerCase()
+              .includes(search.toLowerCase())
+          );
+        }
+        return String(value ?? "")
           .toLowerCase()
-          .includes(search.toLowerCase())
-      );
+          .includes(search.toLowerCase());
+      });
     });
   }, [tableData, search, searchFields]);
 
@@ -120,18 +132,35 @@ const SimpleTable: React.FC<SimpleTableProps> = ({
 
   const renderCell = (item: TableItem, column: Column) => {
     const value = item[column.key];
+
+    if (arrayFields.includes(column.key) && Array.isArray(value)) {
+      return (
+        <div className="flex flex-wrap gap-1">
+          {value.map((element, index) => (
+            <span
+              key={index}
+              className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full"
+            >
+              {String(element)}
+            </span>
+          ))}
+        </div>
+      );
+    }
+
     if (badgeFields.includes(column.key)) {
       return (
-        <span
-          className={`px-2 py-1 text-xs rounded-full ${getBadgeColor(
+        <div
+          className={`px-2 py-1 text-xs rounded-full text-center ${getBadgeColor(
             String(value)
           )}`}
         >
           {value}
-        </span>
+        </div>
       );
     }
-    return value;
+
+    return String(value);
   };
 
   const getItemDisplayName = (item: TableItem) => {
@@ -189,7 +218,7 @@ const SimpleTable: React.FC<SimpleTableProps> = ({
               {paginatedData.map((item) => (
                 <tr key={item.id} className="hover:bg-gray-50">
                   {columns.map((column) => (
-                    <td key={column.key} className="p-4 px-6 text-gray-600">
+                    <td key={column.key} className="py-4 px-6 text-gray-600">
                       {renderCell(item, column)}
                     </td>
                   ))}
