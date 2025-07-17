@@ -62,11 +62,13 @@ const SimpleTable: React.FC<SimpleTableProps> = ({
 
   const columns = useMemo<Column[]>(() => {
     if (!data.length) return [];
-    return Object.keys(data[0]).map((key) => ({
-      key,
-      label:
-        key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, " $1"),
-    }));
+    return Object.keys(data[0])
+      .filter((key) => key !== "id") // Filter out the 'id' field
+      .map((key) => ({
+        key,
+        label:
+          key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, " $1"),
+      }));
   }, [data]);
 
   const filteredData = useMemo(() => {
