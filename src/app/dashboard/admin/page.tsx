@@ -1,16 +1,11 @@
 'use client'
-import type { Metadata } from "next";
 import { useAuth } from "../../contexts/AuthProvider";
 import ProtectedRoute from "../../components/ProtectedRoutes";
-import { useRouter } from "next/navigation";
-
-
-
-
+// import { useRouter } from "next/navigation";
 
 export default function Page() {
-  const { user , isAuthenticated} = useAuth();
-  const router = useRouter();
+  const { user} = useAuth();
+  // const router = useRouter();
   console.log(user?.role);
 
   // if (!user && !isAuthenticated) {

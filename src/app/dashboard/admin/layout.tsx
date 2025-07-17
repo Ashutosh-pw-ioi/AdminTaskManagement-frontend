@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   HelpCircle,
   LogOut,
@@ -48,7 +49,6 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
       icon: CirclePlus,
       href: "/dashboard/admin/newtasks",
     },
-
     {
       id: "help",
       label: "Help",
@@ -114,6 +114,11 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // Close mobile menu when navigating
+  const handleMenuItemClick = () => {
+    setIsMobileMenuOpen(false);
+  };
+
   return (
     <ProtectedRoute requiredRole="ADMIN">
     <div className="flex min-h-screen w-screen">
@@ -163,9 +168,10 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
             const isActive = activeSection === item.id;
 
             return (
-              <a
+              <Link
                 key={item.id}
                 href={item.href}
+                onClick={handleMenuItemClick}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg 
                   transition-all duration-200 ease-in-out cursor-pointer
                   ${
@@ -176,7 +182,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
                 <span className="font-medium">{item.label}</span>
-              </a>
+              </Link>
             );
           })}
         </nav>

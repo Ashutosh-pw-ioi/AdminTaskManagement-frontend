@@ -1,155 +1,154 @@
-"use client";
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import axios from "axios";
-import { usePathname } from "next/navigation";
+    "use client";
+    import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+    import axios from "axios";
+    import { usePathname } from "next/navigation";
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-}
+    interface User {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    }
 
-interface AuthContextType {
-  user: User | null;
-  isLoading: boolean;
-  isAuthenticated: boolean;
-  login: (email: string, password: string, role: string) => Promise<void>;
-  logout: () => Promise<void>;
-  checkAuth: () => Promise<void>;
-}
+    interface AuthContextType {
+    user: User | null;
+    isLoading: boolean;
+    isAuthenticated: boolean;
+    login: (email: string, password: string, role: string) => Promise<void>;
+    logout: () => Promise<void>;
+    checkAuth: () => Promise<void>;
+    }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+    const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
+    interface AuthProviderProps {
+    children: ReactNode;
+    }
 
-export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const pathname = usePathname();
+    export const AuthProvider = ({ children }: AuthProviderProps) => {
+    const [user, setUser] = useState<User | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const pathname = usePathname();
 
-  const publicRoutes = [
-    '/auth/login/admin',
-    '/auth/login/operator',
-    '/', 
-  ];
+    const publicRoutes = [
+        '/auth/login/admin',
+        '/auth/login/operator',
+        '/', 
+    ];
 
-  // Configure axios to include cookies in requests
-  axios.defaults.withCredentials = true;
+    // Configure axios to include cookies in requests
+    axios.defaults.withCredentials = true;
 
-  const checkAuth = async () => {
-    try {
-      setIsLoading(true);
-      const response = await axios.get(
-        "http://localhost:8000/api/auth/check",
-        {
-          withCredentials: true,
-          timeout: 10000,
+    const checkAuth = async () => {
+        try {
+        setIsLoading(true);
+        const response = await axios.get(
+            "http://localhost:8000/api/auth/check",
+            {
+            withCredentials: true,
+            timeout: 10000,
+            }
+        );
+        
+        const userData = response.data;
+        setUser({
+            id: userData.id,
+            name: userData.name,
+            email: userData.email,
+            role: userData.role,
+        });
+        setIsAuthenticated(true);
+        } catch (error) {
+        console.error("Auth check failed:", error);
+        setUser(null);
+        setIsAuthenticated(false);
+        } finally {
+        setIsLoading(false);
         }
-      );
-      
-      const userData = response.data;
-      setUser({
-        id: userData.id,
-        name: userData.name,
-        email: userData.email,
-        role: userData.role,
-      });
-      setIsAuthenticated(true);
-    } catch (error) {
-      console.error("Auth check failed:", error);
-      setUser(null);
-      setIsAuthenticated(false);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
 
-  const login = async (email: string, password: string, role: string) => {
-    try {
-        console.log(email,password,role)
-      const response = await axios.post(
-        "http://localhost:8000/api/auth/login",
-        {
-          email: email.trim(),
-          password: password.trim(),
-          role: role,
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          withCredentials: true,
-          timeout: 10000,
+    const login = async (email: string, password: string, role: string) => {
+        try {
+            console.log(email,password,role)
+        const response = await axios.post(
+            "http://localhost:8000/api/auth/login",
+            {
+            email: email.trim(),
+            password: password.trim(),
+            role: role,
+            },
+            {
+            headers: {
+                "Content-Type": "application/json",
+            },
+            withCredentials: true,
+            timeout: 10000,
+            }
+        );
+
+        const userData = response.data.user;
+        setUser({
+            id: userData.userId,
+            name: userData.name,
+            email: userData.email,
+            role: userData.role,
+        });
+        setIsAuthenticated(true);
+        } catch (error) {
+        console.error("Login failed:", error);
+        throw error; // Re-throw to handle in component
         }
-      );
+    };
 
-      const userData = response.data.user;
-      setUser({
-        id: userData.userId,
-        name: userData.name,
-        email: userData.email,
-        role: userData.role,
-      });
-      setIsAuthenticated(true);
-    } catch (error) {
-      console.error("Login failed:", error);
-      throw error; // Re-throw to handle in component
-    }
-  };
-
-  const logout = async () => {
-    try {
-      await axios.post(
-        "http://localhost:8000/api/auth/logout",
-        {},
-        {
-          withCredentials: true,
-          timeout: 10000,
+    const logout = async () => {
+        try {
+        await axios.post(
+            "http://localhost:8000/api/auth/logout",
+            {},
+            {
+            withCredentials: true,
+            timeout: 10000,
+            }
+        );
+        } catch (error) {
+        console.error("Logout request failed:", error);
+        } finally {
+        // Clear user state regardless of API call success
+        setUser(null);
+        setIsAuthenticated(false);
         }
-      );
-    } catch (error) {
-      console.error("Logout request failed:", error);
-    } finally {
-      // Clear user state regardless of API call success
-      setUser(null);
-      setIsAuthenticated(false);
-    }
-  };
+    };
 
-  useEffect(() => {
-     const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
-    
-    if (!isPublicRoute) {
-      checkAuth();
-    } else {
-      setIsLoading(false); 
-    }
-  }, [pathname]);
-
-  const value = {
-    user,
-    isLoading,
-    isAuthenticated,
-    login,
-    logout,
-    checkAuth,
-  };
-
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    useEffect(() => {
+  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
+  if (!isPublicRoute) {
+    checkAuth();
+  } else {
+    setIsLoading(false);
   }
-  return context;
-};
+}, [pathname, publicRoutes]);
+
+    const value = {
+        user,
+        isLoading,
+        isAuthenticated,
+        login,
+        logout,
+        checkAuth,
+    };
+
+    return (
+        <AuthContext.Provider value={value}>
+        {children}
+        </AuthContext.Provider>
+    );
+    };
+
+    export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (context === undefined) {
+        throw new Error("useAuth must be used within an AuthProvider");
+    }
+    return context;
+    };
