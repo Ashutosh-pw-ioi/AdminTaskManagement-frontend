@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X, Check, ChevronDown } from "lucide-react";
+import { X, ChevronDown } from "lucide-react";
 import { DefaultTasks } from "../constants/DefaultTasks";
 
 interface Task {
