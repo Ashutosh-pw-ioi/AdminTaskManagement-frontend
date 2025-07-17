@@ -195,8 +195,8 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
         </div>
       </div>
 
-      <div className="flex-1 bg-[#FFE4B8] lg:ml-0">
-        <div className="p-6 w-screen md:w-[1000px]">{children}</div>
+      <div className="flex-1 bg-[#FFE4B8]">
+        <div className="p-3">{children}</div>
       </div>
     </div>
     </ProtectedRoute>
