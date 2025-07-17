@@ -10,7 +10,7 @@
     role: string;
     }
 
-    interface AuthContextType {
+interface AuthContextType {
     user: User | null;
     isLoading: boolean;
     isAuthenticated: boolean;
@@ -86,6 +86,7 @@
             timeout: 10000,
             }
         );
+        
 
         const userData = response.data.user;
         setUser({
