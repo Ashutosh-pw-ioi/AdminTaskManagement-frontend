@@ -6,7 +6,7 @@ export const NewTasks = [
     priority: "high",
     status: "in progress",
     assigned_by: "ad101",
-    due_date: "2025-07-17",
+    due_date: "2025-07-14",
     assigned_to: ["op201", "op202"],
   },
   {
@@ -15,7 +15,7 @@ export const NewTasks = [
     priority: "medium",
     status: "pending",
     assigned_by: "ad102",
-    due_date: "2025-07-17",
+    due_date: "2025-07-14",
     assigned_to: ["op203", "op204", "op205"],
   },
   {
@@ -26,7 +26,7 @@ export const NewTasks = [
     priority: "high",
     status: "pending",
     assigned_by: "ad104",
-    due_date: "2025-07-18",
+    due_date: "2025-07-15",
     assigned_to: ["op206"],
   },
   {
@@ -35,7 +35,7 @@ export const NewTasks = [
     priority: "low",
     status: "completed",
     assigned_by: "ad102",
-    due_date: "2025-07-18",
+    due_date: "2025-07-15",
     assigned_to: ["op207", "op208"],
   },
   {
@@ -45,7 +45,7 @@ export const NewTasks = [
     priority: "medium",
     status: "in progress",
     assigned_by: "ad101",
-    due_date: "2025-07-19",
+    due_date: "2025-07-16",
     assigned_to: ["op209"],
   },
   {
@@ -54,7 +54,7 @@ export const NewTasks = [
     priority: "low",
     status: "completed",
     assigned_by: "ad105",
-    due_date: "2025-07-19",
+    due_date: "2025-07-16",
     assigned_to: ["op210", "op211"],
   },
   {
@@ -64,7 +64,7 @@ export const NewTasks = [
     priority: "high",
     status: "pending",
     assigned_by: "ad106",
-    due_date: "2025-07-20",
+    due_date: "2025-07-17",
     assigned_to: ["op212"],
   },
   {
@@ -73,7 +73,7 @@ export const NewTasks = [
     priority: "medium",
     status: "in progress",
     assigned_by: "ad104",
-    due_date: "2025-07-20",
+    due_date: "2025-07-17",
     assigned_to: ["op213", "op214"],
   },
   {
@@ -82,7 +82,7 @@ export const NewTasks = [
     priority: "low",
     status: "completed",
     assigned_by: "ad107",
-    due_date: "2025-07-21",
+    due_date: "2025-07-18",
     assigned_to: ["op215", "op216", "op217"],
   },
   {
@@ -92,7 +92,7 @@ export const NewTasks = [
     priority: "high",
     status: "pending",
     assigned_by: "ad105",
-    due_date: "2025-07-21",
+    due_date: "2025-07-18",
     assigned_to: ["op218"],
   },
   {
@@ -101,7 +101,7 @@ export const NewTasks = [
     priority: "medium",
     status: "in progress",
     assigned_by: "ad102",
-    due_date: "2025-07-22",
+    due_date: "2025-07-19",
     assigned_to: ["op219", "op220"],
   },
   {
@@ -110,7 +110,7 @@ export const NewTasks = [
     priority: "low",
     status: "pending",
     assigned_by: "ad101",
-    due_date: "2025-07-22",
+    due_date: "2025-07-19",
     assigned_to: ["op221"],
   },
   {
@@ -119,7 +119,7 @@ export const NewTasks = [
     priority: "low",
     status: "completed",
     assigned_by: "ad106",
-    due_date: "2025-07-23",
+    due_date: "2025-07-20",
     assigned_to: ["op222", "op223"],
   },
   {
@@ -129,7 +129,7 @@ export const NewTasks = [
     priority: "medium",
     status: "in progress",
     assigned_by: "ad107",
-    due_date: "2025-07-23",
+    due_date: "2025-07-20",
     assigned_to: ["op224"],
   },
   {
@@ -138,9 +138,7 @@ export const NewTasks = [
     priority: "high",
     status: "pending",
     assigned_by: "ad105",
-    due_date: "2025-07-24",
+    due_date: "2025-07-20",
     assigned_to: ["op225", "op226"],
   },
 ];
-
-// export const NewTasks = [];
