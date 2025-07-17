@@ -239,7 +239,7 @@ const SimpleTable: React.FC<SimpleTableProps> = ({
     if (badgeFields.includes(column.key)) {
       return (
         <div
-          className={`py-1 text-xs rounded-full text-center ${getBadgeColor(
+          className={`py-1 px-2 text-xs rounded-full text-center ${getBadgeColor(
             String(value)
           )}`}
         >
