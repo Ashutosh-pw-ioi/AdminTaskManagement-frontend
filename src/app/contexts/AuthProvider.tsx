@@ -127,10 +127,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // Only check auth once on initial load and not on login pages
     if (!hasCheckedAuth) {
       const isLoginPage = pathname.includes('/auth/login');
-      
+
+      console.log("Checking auth for path:", pathname);
+      console.log("Is login page:", isLoginPage);
       if (!isLoginPage) {
         checkAuth();
-        setIsAuthenticated(true)
+        
       } else {
         setIsLoading(false);
         setHasCheckedAuth(true);

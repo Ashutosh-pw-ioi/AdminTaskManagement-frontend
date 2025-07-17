@@ -50,9 +50,7 @@ export default function ProtectedRoute({
       return "ADMIN";
     } else if (pathname.includes('/operation') || pathname.includes('/dashboard/operation')) {
       return "OPERATION";
-    } else if (pathname.includes('/user') || pathname.includes('/dashboard/user')) {
-      return "USER";
-    }
+    } 
     
     return null; // No role requirement
   };
@@ -77,11 +75,11 @@ export default function ProtectedRoute({
         
         // Redirect to appropriate unauthorized page or login
         if (pathname.includes('/admin')) {
-          router.push("/dashboard/admin/unauthorized");
+          router.push("/auth/login/admin");
         } else if (pathname.includes('/operation')) {
-          router.push("/dashboard/operation/unauthorized");
+          router.push("/auth/login/operation");
         } else {
-          router.push("/unauthorized");
+          router.push("/");
         }
         return;
       }
@@ -101,7 +99,7 @@ export default function ProtectedRoute({
     return (
       <div>
         <ToastContainer />
-        
+
       </div>
     );
   }
