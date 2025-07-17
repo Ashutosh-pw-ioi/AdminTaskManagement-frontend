@@ -5,19 +5,11 @@ import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { useAuth } from "@/src/app/contexts/AuthProvider"; // Adjust path as needed
 
 interface LoginPageProps {
   role: "admin" | "operation";
   imagePath: string;
-}
-
-interface LoginResponse {
-  token: string;
-  user: {
-    id: string;
-    email: string;
-    role: string;
-  };
 }
 
 interface ApiError {
@@ -43,15 +35,18 @@ export default function LoginPage({ role, imagePath }: LoginPageProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isClient, setIsClient] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
+  const { login, isAuthenticated, user } = useAuth();
 
   const config = roleConfig[role];
 
+  // Redirect if already authenticated
   useEffect(() => {
-    setIsClient(true);
-  }, []);
+    if (isAuthenticated && user) {
+      router.push(`/dashboard/${role}`);
+    }
+  }, [isAuthenticated, user, role, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,34 +76,17 @@ export default function LoginPage({ role, imagePath }: LoginPageProps) {
     setIsLoading(true);
 
     try {
-      const response = await axios.post<LoginResponse>(
-        "http://localhost:8000/api/auth/login",
-        {
-          email: email.trim(),
-          password: password.trim(),
-          role: config.apiRole,
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          timeout: 10000,
-        }
-      );
-
-      const { token, user } = response.data;
-
-      if (isClient && typeof window !== "undefined") {
-        localStorage.setItem("authToken", token);
-        localStorage.setItem("user", JSON.stringify(user));
-      }
-
+      await login(email, password, config.apiRole);
+      
       toast.success(`Welcome back! Redirecting to your ${role} dashboard...`, {
         toastId: "login-success",
         autoClose: 2000,
       });
 
-      router.push(`/dashboard/${role}`);
+      // Small delay to show success message
+      setTimeout(() => {
+        router.push(`/dashboard/${role}`);
+      }, 2000);
     } catch (error) {
       console.error("Login error:", error);
 
@@ -131,7 +109,7 @@ export default function LoginPage({ role, imagePath }: LoginPageProps) {
               errorMessage = `Access denied. You don't have ${role} permissions.`;
               break;
             case 404:
-              errorMessage = "Login service not found. Please contact support.";
+              errorMessage = "User not found. Please check your credentials.";
               break;
             case 422:
               errorMessage =

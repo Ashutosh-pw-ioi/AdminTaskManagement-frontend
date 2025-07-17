@@ -9,6 +9,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { helpItems, faqs } from "../constants/HelpData";
+import ProtectedRoute from "@/src/app/components/ProtectedRoutes";
 
 export default function HelpSection() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -31,6 +32,7 @@ export default function HelpSection() {
   };
 
   return (
+    <ProtectedRoute requiredRole="ADMIN">
     <div className="space-y-6 p-4">
       <div>
         <h2 className="text-3xl font-bold text-gray-800 mb-2">
@@ -134,5 +136,6 @@ export default function HelpSection() {
         </div>
       </div>
     </div>
+    </ProtectedRoute>
   );
 }

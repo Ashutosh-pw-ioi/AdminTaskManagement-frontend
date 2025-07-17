@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   HelpCircle,
   LogOut,
@@ -13,11 +14,15 @@ import {
   ChartPie,
 } from "lucide-react";
 import Image from "next/image";
+import { useAuth } from "@/src/app/contexts/AuthProvider"; 
+import ProtectedRoute from "../../components/ProtectedRoutes";
 
 const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const { logout } = useAuth();
 
   const menuItems = [
     {
@@ -44,7 +49,6 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
       icon: CirclePlus,
       href: "/dashboard/admin/newtasks",
     },
-
     {
       id: "help",
       label: "Help",
@@ -96,12 +100,27 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     };
   }, [isMobileMenuOpen]);
 
-  const handleLogout = () => {
-    console.log("Logout clicked");
-    router.push("/auth/login/admin");
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      await logout();
+      router.push("/auth/login/admin");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      // Even if logout fails, redirect to login page
+      router.push("/auth/login/admin");
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
+  // Close mobile menu when navigating
+  const handleMenuItemClick = () => {
+    setIsMobileMenuOpen(false);
   };
 
   return (
+    <ProtectedRoute requiredRole="ADMIN">
     <div className="flex min-h-screen w-screen">
       <button
         id="mobile-menu-button"
@@ -149,9 +168,10 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
             const isActive = activeSection === item.id;
 
             return (
-              <a
+              <Link
                 key={item.id}
                 href={item.href}
+                onClick={handleMenuItemClick}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg 
                   transition-all duration-200 ease-in-out cursor-pointer
                   ${
@@ -162,18 +182,21 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
                 <span className="font-medium">{item.label}</span>
-              </a>
+              </Link>
             );
           })}
         </nav>
 
         <div className="p-4 border-t border-white/20">
           <button
-            className="w-full flex items-center space-x-3 bg-[#D9A864] text-gray-800 py-3 px-4 hover:bg-[#f3c17a] rounded-lg transition-all duration-200 ease-in-out cursor-pointer font-semibold hover:transform hover:scale-[1.01]"
+            className={`w-full flex items-center space-x-3 bg-[#D9A864] text-gray-800 py-3 px-4 hover:bg-[#f3c17a] rounded-lg transition-all duration-200 ease-in-out cursor-pointer font-semibold hover:transform hover:scale-[1.01] ${
+              isLoggingOut ? "opacity-50 cursor-not-allowed" : ""
+            }`}
             onClick={handleLogout}
+            disabled={isLoggingOut}
           >
             <LogOut className="w-4 h-4 flex-shrink-0" />
-            <span>Log out</span>
+            <span>{isLoggingOut ? "Logging out..." : "Log out"}</span>
           </button>
         </div>
       </div>
@@ -182,6 +205,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
         <div className="p-3">{children}</div>
       </div>
     </div>
+    </ProtectedRoute>
   );
 };
 
