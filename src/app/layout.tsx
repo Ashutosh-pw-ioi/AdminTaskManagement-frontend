@@ -1,4 +1,5 @@
 import "./globals.css";
+import { AuthProvider } from "./contexts/AuthProvider";
 
 export const metadata = {
   title: "My App",
@@ -12,7 +13,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <AuthProvider>
+        {children}
+        </AuthProvider>
+
+      </body>
     </html>
   );
 }
