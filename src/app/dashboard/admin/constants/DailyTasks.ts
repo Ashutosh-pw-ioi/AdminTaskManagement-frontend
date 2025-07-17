@@ -113,4 +113,4 @@ export const DailyTasks = [
   //   },
 ];
 
-// export const NewTasks = []
+// export const DailyTasks = []

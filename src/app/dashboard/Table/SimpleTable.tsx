@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Edit, Trash2, Search } from "lucide-react";
+import { Edit, Trash2, Search, ChevronDown } from "lucide-react";
 import EditModal from "./EditModal";
 import DeleteModal from "./DeleteModal";
 
@@ -13,6 +13,16 @@ interface Column {
   label: string;
 }
 
+interface DropdownOption {
+  value: string;
+  label: string;
+}
+
+interface DropdownField {
+  field: string;
+  options: DropdownOption[];
+}
+
 interface SimpleTableProps {
   data: TableItem[];
   onEdit?: (item: TableItem) => void;
@@ -20,7 +30,8 @@ interface SimpleTableProps {
   badgeFields?: string[];
   searchFields?: string[];
   itemsPerPage: number;
-  arrayFields?: string[]; // New prop to specify which fields are arrays
+  arrayFields?: string[];
+  dropdownFields?: DropdownField[];
 }
 
 const SimpleTable: React.FC<SimpleTableProps> = ({
@@ -30,7 +41,8 @@ const SimpleTable: React.FC<SimpleTableProps> = ({
   badgeFields = [],
   searchFields = [],
   itemsPerPage,
-  arrayFields = [], // New prop with default empty array
+  arrayFields = [],
+  dropdownFields = [],
 }) => {
   const [editItem, setEditItem] = useState<TableItem | null>(null);
   const [deleteId, setDeleteId] = useState<string | number | null>(null);
@@ -38,6 +50,7 @@ const SimpleTable: React.FC<SimpleTableProps> = ({
   const [search, setSearch] = useState("");
   const [tableData, setTableData] = useState<TableItem[]>(data);
   const [currentPage, setCurrentPage] = useState(1);
+  const [openDropdowns, setOpenDropdowns] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setTableData(data);
@@ -90,6 +103,8 @@ const SimpleTable: React.FC<SimpleTableProps> = ({
       active: "bg-green-100 text-green-800",
       inactive: "bg-red-100 text-red-800",
       pending: "bg-yellow-100 text-yellow-800",
+      "in progress": "bg-blue-100 text-blue-800",
+      completed: "bg-green-100 text-green-800",
       high: "bg-red-100 text-red-800",
       medium: "bg-yellow-100 text-yellow-800",
       low: "bg-green-100 text-green-800",
@@ -130,8 +145,81 @@ const SimpleTable: React.FC<SimpleTableProps> = ({
     setItemToDelete(null);
   };
 
+  const handleDropdownChange = (
+    itemId: string | number,
+    field: string,
+    value: string
+  ) => {
+    const updated = tableData.map((item) =>
+      item.id === itemId ? { ...item, [field]: value } : item
+    );
+    setTableData(updated);
+
+    const updatedItem = updated.find((item) => item.id === itemId);
+    if (updatedItem && onEdit) {
+      onEdit(updatedItem);
+    }
+  };
+
+  const toggleDropdown = (dropdownId: string) => {
+    setOpenDropdowns((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(dropdownId)) {
+        newSet.delete(dropdownId);
+      } else {
+        newSet.add(dropdownId);
+      }
+      return newSet;
+    });
+  };
+
+  const getDropdownConfig = (fieldKey: string) => {
+    return dropdownFields.find((df) => df.field === fieldKey);
+  };
+
   const renderCell = (item: TableItem, column: Column) => {
     const value = item[column.key];
+    const dropdownConfig = getDropdownConfig(column.key);
+
+    if (dropdownConfig) {
+      const dropdownId = `${item.id}-${column.key}`;
+      const isOpen = openDropdowns.has(dropdownId);
+
+      return (
+        <div className="relative">
+          <button
+            onClick={() => toggleDropdown(dropdownId)}
+            className={`flex items-center justify-between min-w-[110px] px-2 py-1 text-xs rounded-full border ${getBadgeColor(
+              String(value)
+            )} hover:opacity-80 transition-opacity`}
+          >
+            <span>{value}</span>
+            <ChevronDown
+              className={`w-3 h-3 transition-transform ${
+                isOpen ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+
+          {isOpen && (
+            <div className="absolute top-full left-0 mt-1 bg-white border rounded-lg shadow-lg z-10 min-w-[120px]">
+              {dropdownConfig.options.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => {
+                    handleDropdownChange(item.id, column.key, option.value);
+                    toggleDropdown(dropdownId);
+                  }}
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg"
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
 
     if (arrayFields.includes(column.key) && Array.isArray(value)) {
       return (
@@ -151,7 +239,7 @@ const SimpleTable: React.FC<SimpleTableProps> = ({
     if (badgeFields.includes(column.key)) {
       return (
         <div
-          className={`px-2 py-1 text-xs rounded-full text-center ${getBadgeColor(
+          className={`py-1 px-2 text-xs rounded-full text-center ${getBadgeColor(
             String(value)
           )}`}
         >
@@ -172,6 +260,17 @@ const SimpleTable: React.FC<SimpleTableProps> = ({
     }
     return `Record #${item.id}`;
   };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!(event.target as Element).closest(".relative")) {
+        setOpenDropdowns(new Set());
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   if (!data.length) {
     return (
@@ -202,7 +301,7 @@ const SimpleTable: React.FC<SimpleTableProps> = ({
                 {columns.map((column) => (
                   <th
                     key={column.key}
-                    className="text-left p-4 px-6 font-medium text-gray-700"
+                    className="text-left p-4 px-4 font-medium text-gray-700"
                   >
                     {column.label}
                   </th>
@@ -218,7 +317,7 @@ const SimpleTable: React.FC<SimpleTableProps> = ({
               {paginatedData.map((item) => (
                 <tr key={item.id} className="hover:bg-gray-50">
                   {columns.map((column) => (
-                    <td key={column.key} className="py-4 px-6 text-gray-600">
+                    <td key={column.key} className="py-4 px-[18px] text-gray-600 text-sm">
                       {renderCell(item, column)}
                     </td>
                   ))}
