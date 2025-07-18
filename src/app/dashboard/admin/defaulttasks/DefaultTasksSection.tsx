@@ -204,32 +204,59 @@ export default function DefaultTasksSection() {
     }
   };
 
-  const handleDelete = async (id: number | string) => {
+ const handleDelete = async (id: number | string) => {
+  try {
+    console.log('Attempting to delete task with ID:', id);
+    
+    const response = await fetch(`http://localhost:8000/api/admin/deleteDefaultTask/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+
+    console.log('Delete response status:', response.status);
+    console.log('Delete response ok:', response.ok);
+
+    let result;
     try {
-      const response = await fetch(`http://localhost:8000/api/admin/deleteDefaultTask/${id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-        credentials: 'include',
-      });
-
-      const result = await response.json();
+      result = await response.json();
+      console.log('Delete response data:', result);
+    } catch (jsonError) {
+      console.log('Response is not JSON, raw text:', await response.text());
       
-      if (result.success || response.ok) {
-        // Refresh the tasks list
+      // If response is not JSON but status is ok, consider it successful
+      if (response.ok) {
         await fetchTasks();
+        return;
       } else {
-        throw new Error(result.message || 'Failed to delete task');
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-    } catch (err) {
-      console.error('Error deleting task:', err);
-      
-      // Refresh the list to check if deletion actually worked
-      await fetchTasks();
-      
-      setError(err instanceof Error ? err.message : 'Failed to delete task');
     }
-  };
 
+    if (result.success || response.ok) {
+      console.log('Delete successful, refreshing tasks...');
+      await fetchTasks();
+      setError(null); // Clear any existing errors
+    } else {
+      throw new Error(result.message || `Delete failed with status ${response.status}`);
+    }
+  } catch (err) {
+    console.error('Error deleting task:', err);
+    
+    // Refresh the list to check if deletion actually worked
+    await fetchTasks();
+    
+    // Check if the task was actually deleted despite the error
+    const taskStillExists = tasks.some(task => task.id == id);
+    if (!taskStillExists) {
+      console.log('Task was deleted successfully despite error');
+      setError(null);
+      return;
+    }
+    
+    setError(err instanceof Error ? err.message : 'Failed to delete task');
+  }
+};
   if (loading) {
     return (
       <div className="p-4 h-screen relative flex items-center justify-center">
