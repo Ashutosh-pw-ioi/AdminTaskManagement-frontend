@@ -14,7 +14,7 @@ interface ProtectedRouteProps {
 export default function ProtectedRoute({
   children,
   requiredRole,
-  redirectTo // If provided, will override automatic detection
+  redirectTo, // If provided, will override automatic detection
 }: ProtectedRouteProps) {
   const { isAuthenticated, user, isLoading } = useAuth();
   const router = useRouter();
@@ -27,14 +27,20 @@ export default function ProtectedRoute({
     }
 
     // Auto-detect based on current path
-    if (pathname.includes('/admin') || pathname.includes('/dashboard/admin')) {
+    if (pathname.includes("/admin") || pathname.includes("/dashboard/admin")) {
       return "/auth/login/admin";
-    } else if (pathname.includes('/operation') || pathname.includes('/dashboard/operation')) {
+    } else if (
+      pathname.includes("/operation") ||
+      pathname.includes("/dashboard/operation")
+    ) {
       return "/auth/login/operation";
-    } else if (pathname.includes('/user') || pathname.includes('/dashboard/user')) {
+    } else if (
+      pathname.includes("/user") ||
+      pathname.includes("/dashboard/user")
+    ) {
       return "/auth/login/user";
     }
-    
+
     // Default fallback
     return "/auth/login/admin";
   };
@@ -46,14 +52,20 @@ export default function ProtectedRoute({
     }
 
     // Auto-detect role based on current path
-    if (pathname.includes('/admin') || pathname.includes('/dashboard/admin')) {
+    if (pathname.includes("/admin") || pathname.includes("/dashboard/admin")) {
       return "ADMIN";
-    } else if (pathname.includes('/operation') || pathname.includes('/dashboard/operation')) {
+    } else if (
+      pathname.includes("/operation") ||
+      pathname.includes("/dashboard/operation")
+    ) {
       return "OPERATION";
-    } else if (pathname.includes('/user') || pathname.includes('/dashboard/user')) {
+    } else if (
+      pathname.includes("/user") ||
+      pathname.includes("/dashboard/user")
+    ) {
       return "USER";
     }
-    
+
     return null; // No role requirement
   };
 
@@ -74,11 +86,11 @@ export default function ProtectedRoute({
         toast.error("Access Denied: Insufficient permissions", {
           toastId: "access-denied",
         });
-        
+
         // Redirect to appropriate unauthorized page or login
-        if (pathname.includes('/admin')) {
+        if (pathname.includes("/admin")) {
           router.push("/dashboard/admin/unauthorized");
-        } else if (pathname.includes('/operation')) {
+        } else if (pathname.includes("/operation")) {
           router.push("/dashboard/operation/unauthorized");
         } else {
           router.push("/unauthorized");
@@ -86,7 +98,17 @@ export default function ProtectedRoute({
         return;
       }
     }
-  }, [isAuthenticated, user, isLoading, pathname, router, requiredRole, redirectTo]);
+  }, [
+    isAuthenticated,
+    user,
+    isLoading,
+    pathname,
+    router,
+    requiredRole,
+    redirectTo,
+    getRedirectPath,
+    getExpectedRole,
+  ]);
 
   if (isLoading) {
     return (
@@ -101,7 +123,6 @@ export default function ProtectedRoute({
     return (
       <div>
         <ToastContainer />
-        
       </div>
     );
   }

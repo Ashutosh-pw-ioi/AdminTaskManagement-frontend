@@ -1,5 +1,11 @@
 "use client";
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
 import axios from "axios";
 import { usePathname } from "next/navigation";
 
@@ -32,27 +38,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
   const pathname = usePathname();
 
-  const publicRoutes = [
-    '/auth/login/admin',
-    '/auth/login/operator',
-    '/auth/login/operation', // Added this in case you have this route too
-    '/', 
-  ];
-
   // Configure axios to include cookies in requests
   axios.defaults.withCredentials = true;
 
   const checkAuth = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get(
-        "http://localhost:8000/api/auth/check",
-        {
-          withCredentials: true,
-          timeout: 10000,
-        }
-      );
-      
+      const response = await axios.get("http://localhost:8000/api/auth/check", {
+        withCredentials: true,
+        timeout: 10000,
+      });
+
       const userData = response.data;
       setUser({
         id: userData.id,
@@ -126,11 +122,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     // Only check auth once on initial load and not on login pages
     if (!hasCheckedAuth) {
-      const isLoginPage = pathname.includes('/auth/login');
-      
+      const isLoginPage = pathname.includes("/auth/login");
+
       if (!isLoginPage) {
         checkAuth();
-        setIsAuthenticated(true)
+        setIsAuthenticated(true);
       } else {
         setIsLoading(false);
         setHasCheckedAuth(true);
@@ -147,11 +143,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     checkAuth,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
