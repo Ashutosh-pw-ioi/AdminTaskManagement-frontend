@@ -17,6 +17,27 @@ const taskService = {
     };
   },
 
+  // Fetch operators
+  async fetchOperators() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/getOperators`, {
+        method: 'GET',
+        headers: this.getAuthHeaders(),
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      return result.success ? result.data : [];
+    } catch (error) {
+      console.error('Error fetching operators:', error);
+      return [];
+    }
+  },
+
   // Fetch all tasks
   async fetchTasks() {
     try {
@@ -149,7 +170,7 @@ const taskService = {
 };
 
 interface Task {
-  
+  id?: string;
   title: string;
   description: string;
   dueDate: string;
@@ -157,14 +178,59 @@ interface Task {
   status: string;
   operatorIds: string[];
   adminId: string;
+  assigned_to?: string[]; // For frontend display
 }
+
+// Function to filter tasks and keep only required fields for UI
+const filterTasksForUI = (tasks: any[]) => {
+  return tasks.map(task => ({
+    id: task.id,
+    title: task.title,
+    description: task.description,
+    dueDate: task.dueDate,
+
+    priority: task.priority,
+    status: task.status,
+    assigned_to: task.assigned_to || []
+  }));
+};
 
 export default function NewTasksSection() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isAddModal, setIsAddModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [operators, setOperators] = useState<any[]>([]);
   const { user, isAuthenticated, checkAuth } = useAuth();
+
+  // Load operators and tasks from backend on component mount
+  useEffect(() => {
+    if (isAuthenticated && user?.id) {
+      loadOperators();
+      loadTasks();
+    } else if (isAuthenticated === false) {
+      // User is not authenticated
+      setIsLoading(false);
+      setError('Please log in to view tasks.');
+    }
+  }, [isAuthenticated, user?.id]);
+
+  const loadOperators = async () => {
+    try {
+      const fetchedOperators = await taskService.fetchOperators();
+      setOperators(fetchedOperators);
+    } catch (err: any) {
+      console.error('Error loading operators:', err);
+    }
+  };
+
+  // Helper function to get operator names by IDs
+  const getOperatorNamesByIds = (operatorIds: string[]) => {
+    return operatorIds.map(id => {
+      const operator = operators.find(op => op.id === id);
+      return operator ? operator.name : id;
+    });
+  };
 
   // Load tasks from backend on component mount
   useEffect(() => {
@@ -187,10 +253,14 @@ export default function NewTasksSection() {
       // Transform the data to match your frontend format
       const transformedTasks = fetchedTasks.map((task: any) => ({
         ...task,
-        assigned_to: task.operators ? task.operators.map((op: any) => op.id) : [], // Map operators to assigned_to
+        // Extract operator names from the operators array
+        assigned_to: task.operators && Array.isArray(task.operators) 
+          ? task.operators.map((op: any) => op.name || op.id) 
+          : [],
         description: task.description || "No description provided.",
       }));
       
+      console.log("Transformed tasks:", transformedTasks); // Debug log
       setTasks(transformedTasks);
     } catch (err: any) {
       console.error('Error loading tasks:', err);
@@ -231,7 +301,10 @@ export default function NewTasksSection() {
       // Transform back to frontend format and add to state
       const transformedTask = {
         ...newTask,
-        assigned_to: newTask.operators ? newTask.operators.map((op: any) => op.id) : newTask.operatorIds || [],
+        // Use our helper function to get operator names
+        assigned_to: newTask.operators && Array.isArray(newTask.operators) 
+          ? newTask.operators.map((op: any) => op.name || op.id)
+          : getOperatorNamesByIds(taskData.operatorIds),
       };
       
       setTasks(prev => [...prev, transformedTask]);
@@ -270,7 +343,7 @@ export default function NewTasksSection() {
         operatorIds: updatedTask.assigned_to || [],
       };
 
-      await taskService.updateTask(updatedTask.id, updateData);
+      await taskService.updateTask(updatedTask.id!, updateData);
       
       // Update local state
       setTasks(prev =>
@@ -336,6 +409,11 @@ export default function NewTasksSection() {
     );
   }
 
+  console.log("Rendering NewTasksSection with tasks:", tasks);
+
+  // Filter tasks to only include required fields for UI
+  const filteredTasksForUI = filterTasksForUI(tasks);
+
   return (
     <div className="p-4 relative">
       {error && (
@@ -365,11 +443,12 @@ export default function NewTasksSection() {
         <Plus className="w-5 h-5 text-[#D4E3F5]" />
       </button>
 
-      {tasks.length > 0 ? (
+      {filteredTasksForUI.length > 0 ? (
         <div className="w-full">
           <div className="text-3xl font-bold mb-8">New Tasks Management</div>
+          
           <SimpleTable
-            data={tasks}
+            data={filteredTasksForUI}
             onEdit={handleEdit}
             onDelete={handleDelete}
             searchFields={["title", "description"]}
