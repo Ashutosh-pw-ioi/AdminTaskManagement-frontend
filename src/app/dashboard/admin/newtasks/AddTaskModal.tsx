@@ -1,5 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X, ChevronDown } from "lucide-react";
+
+interface Operator {
+  id: string;
+  name: string;
+}
 
 interface AddTaskModalProps {
   isOpen: boolean;
@@ -24,14 +29,58 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
   const [status, setStatus] = useState<"pending" | "in-progress" | "completed">(
     "pending"
   );
-  const [assigned_to, setAssignedTo] = useState<string[]>(["op101"]);
+  const [assigned_to, setAssignedTo] = useState<string[]>([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [operators, setOperators] = useState<Operator[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleAssigneeToggle = (assignee: string) => {
+  // Fetch operators from backend
+  const fetchOperators = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const response = await fetch("http://localhost:8000/api/admin/getOperators",
+         {
+  credentials: "include"
+}
+      );
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch operators");
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setOperators(data.data);
+        // Set default assignee to first operator if available
+        if (data.data.length > 0 && assigned_to.length === 0) {
+          setAssignedTo([data.data[0].id]);
+        }
+      } else {
+        throw new Error("Failed to load operators");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load operators");
+      console.error("Error fetching operators:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch operators when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchOperators();
+    }
+  }, [isOpen]);
+
+  const handleAssigneeToggle = (operatorId: string) => {
     setAssignedTo((prev) =>
-      prev.includes(assignee)
-        ? prev.filter((a) => a !== assignee)
-        : [...prev, assignee]
+      prev.includes(operatorId)
+        ? prev.filter((id) => id !== operatorId)
+        : [...prev, operatorId]
     );
   };
 
@@ -50,12 +99,16 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
     setDescription("");
     setPriority("medium");
     setStatus("pending");
-    setAssignedTo(["op101"]);
+    setAssignedTo([]);
     setIsDropdownOpen(false);
     onClose();
   };
 
-  const assigneeOptions = ["op101", "op102", "op103", "op104", "op105"];
+  // Get operator name by ID
+  const getOperatorNameById = (id: string) => {
+    const operator = operators.find(op => op.id === id);
+    return operator ? operator.name : id;
+  };
 
   if (!isOpen) return null;
 
@@ -164,13 +217,17 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 >
                   <div className="flex-1 flex flex-wrap gap-1">
-                    {assigned_to.length > 0 ? (
-                      assigned_to.map((assignee) => (
+                    {loading ? (
+                      <span className="text-gray-400 text-sm">Loading operators...</span>
+                    ) : error ? (
+                      <span className="text-red-500 text-sm">{error}</span>
+                    ) : assigned_to.length > 0 ? (
+                      assigned_to.map((operatorId) => (
                         <span
-                          key={assignee}
+                          key={operatorId}
                           className="bg-[#1B3A6A] text-white text-xs px-2 py-1 rounded"
                         >
-                          {assignee}
+                          {getOperatorNameById(operatorId)}
                         </span>
                       ))
                     ) : (
@@ -187,20 +244,20 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                   />
                 </div>
 
-                {isDropdownOpen && (
+                {isDropdownOpen && !loading && !error && (
                   <div className="absolute z-10 mt-1 bg-white border border-gray-300 rounded shadow w-full max-h-48 overflow-y-auto">
-                    {assigneeOptions.map((assignee) => (
+                    {operators.map((operator) => (
                       <label
-                        key={assignee}
+                        key={operator.id}
                         className="flex items-center px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
                       >
                         <input
                           type="checkbox"
-                          checked={assigned_to.includes(assignee)}
-                          onChange={() => handleAssigneeToggle(assignee)}
+                          checked={assigned_to.includes(operator.id)}
+                          onChange={() => handleAssigneeToggle(operator.id)}
                           className="mr-2"
                         />
-                        {assignee}
+                        {operator.name}
                       </label>
                     ))}
                   </div>
