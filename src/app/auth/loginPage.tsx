@@ -1,11 +1,11 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { useAuth } from "@/src/app/contexts/AuthProvider"; // Adjust path as needed
+import { useAuth } from "@/src/app/contexts/AuthProvider";
 
 interface LoginPageProps {
   role: "admin" | "operation";
@@ -37,16 +37,27 @@ export default function LoginPage({ role, imagePath }: LoginPageProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
-  const { login, isAuthenticated, user } = useAuth();
+  const { login, isAuthenticated, user, isLoading: authLoading } = useAuth();
+  const hasRedirectedRef = useRef(false);
 
   const config = roleConfig[role];
 
-  // Redirect if already authenticated
+  // Only redirect if authenticated and correct role - run once
   useEffect(() => {
-    if (isAuthenticated && user) {
-      router.push(`/dashboard/${role}`);
+    if (!authLoading && isAuthenticated && user && !hasRedirectedRef.current) {
+      // Check if user has the correct role for this login page
+      const expectedRole = config.apiRole;
+      
+      if (user.role === expectedRole) {
+        hasRedirectedRef.current = true;
+        router.push(`/dashboard/${role}`);
+      } else {
+        // User is authenticated but doesn't have the right role for this page
+        // Don't redirect, let them try to login with correct credentials
+        console.log(`User role ${user.role} doesn't match expected role ${expectedRole}`);
+      }
     }
-  }, [isAuthenticated, user, role, router]);
+  }, [authLoading, isAuthenticated, user, role, router, config.apiRole]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,13 +91,13 @@ export default function LoginPage({ role, imagePath }: LoginPageProps) {
       
       toast.success(`Welcome back! Redirecting to your ${role} dashboard...`, {
         toastId: "login-success",
-        autoClose: 2000,
+        autoClose: 1500,
       });
 
-      // Small delay to show success message
+      // Redirect immediately after successful login
       setTimeout(() => {
         router.push(`/dashboard/${role}`);
-      }, 2000);
+      }, 1500);
     } catch (error) {
       console.error("Login error:", error);
 
@@ -143,6 +154,17 @@ export default function LoginPage({ role, imagePath }: LoginPageProps) {
       setIsLoading(false);
     }
   };
+
+  // Show loading state while auth is being checked
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-[#F1CB8D]">
+        <div className="flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#486AA0]"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-[#F1CB8D]">

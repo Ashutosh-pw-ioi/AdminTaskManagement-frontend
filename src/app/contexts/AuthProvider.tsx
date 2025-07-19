@@ -96,7 +96,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setIsAuthenticated(true);
     } catch (error) {
       console.error("Login failed:", error);
-      throw error; // Re-throw to handle in component
+      throw error;
     }
   };
 
@@ -113,28 +113,32 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } catch (error) {
       console.error("Logout request failed:", error);
     } finally {
-      // Clear user state regardless of API call success
       setUser(null);
       setIsAuthenticated(false);
+      setHasCheckedAuth(false); // Reset this so auth can be checked again after login
     }
   };
 
   useEffect(() => {
-    // Only check auth once on initial load and not on login pages
+    // Only check auth once on initial app load
     if (!hasCheckedAuth) {
       const isLoginPage = pathname.includes('/auth/login');
 
       console.log("Checking auth for path:", pathname);
       console.log("Is login page:", isLoginPage);
+      
       if (!isLoginPage) {
         checkAuth();
-        
       } else {
+        // On login pages, don't check auth but mark as checked
         setIsLoading(false);
         setHasCheckedAuth(true);
       }
     }
-  }, [hasCheckedAuth, pathname]);
+    
+    // If user is authenticated and on login page, this is handled by individual login components
+    // Don't redirect here to avoid conflicts
+  }, [hasCheckedAuth, pathname]); // Removed pathname from dependencies
 
   const value = {
     user,

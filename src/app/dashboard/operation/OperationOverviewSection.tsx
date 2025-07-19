@@ -1,11 +1,55 @@
-import React from "react";
-
+import React, { useState, useEffect } from "react";
 import MetricCard from "../overviewComponents/MetricCard";
 import BarChartComponent from "../overviewComponents/BarChartComponent";
 import PieChartComponent from "../overviewComponents/PieChartComponent";
 import WeeklyTrendChart from "../overviewComponents/WeeklyTrendChart";
 
+const getAuthHeaders = () => {
+  return {
+    'Content-Type': 'application/json',
+    // Add your auth token here if needed
+    // 'Authorization': `Bearer ${token}`
+  };
+};
+
+interface PriorityData {
+  LOW: number;
+  MEDIUM: number;
+  HIGH: number;
+}
+
+interface StatusData {
+  PENDING: number;
+  IN_PROGRESS: number;
+  COMPLETED: number;
+}
+
+interface CompletionRateData {
+  operatorId: string;
+  date: string;
+  totalTasks: number;
+  completedTasks: number;
+  completionRate: number;
+  breakdown: {
+    daily: {
+      total: number;
+      completed: number;
+    };
+    new: {
+      total: number;
+      completed: number;
+    };
+  };
+}
+
 const OperationOverviewSection: React.FC = () => {
+  const [priorityData, setPriorityData] = useState<PriorityData | null>(null);
+  const [statusData, setStatusData] = useState<StatusData | null>(null);
+  const [completionData, setCompletionData] = useState<CompletionRateData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Static data for weekly trend (as requested to keep it as is)
   const weeklyTrendData = [
     { day: "Mon", tasks: 18 },
     { day: "Tue", tasks: 22 },
@@ -16,37 +60,124 @@ const OperationOverviewSection: React.FC = () => {
     { day: "Sun", tasks: 5 },
   ];
 
-  const metrics = [
+  // Fetch data from APIs
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const [priorityResponse, statusResponse, completionResponse] = await Promise.all([
+          fetch('http://localhost:8000/api/operator/getPriorityCount', {
+            method: 'GET',
+            credentials: 'include',
+            headers: getAuthHeaders(),
+          }),
+          fetch('http://localhost:8000/api/operator/getStatusCountDaily', {
+            method: 'GET',
+            credentials: 'include',
+            headers: getAuthHeaders(),
+          }),
+          fetch('http://localhost:8000/api/operator/getCompletionRate', {
+            method: 'GET',
+            credentials: 'include',
+            headers: getAuthHeaders(),
+          }),
+        ]);
+
+        if (!priorityResponse.ok || !statusResponse.ok || !completionResponse.ok) {
+          throw new Error('Failed to fetch data from one or more APIs');
+        }
+
+        const priorityResult = await priorityResponse.json();
+        const statusResult = await statusResponse.json();
+        const completionResult = await completionResponse.json();
+
+        if (priorityResult.success) {
+          setPriorityData(priorityResult.data);
+        }
+
+        if (statusResult.success) {
+          setStatusData(statusResult.data);
+        }
+
+        if (completionResult.success) {
+          setCompletionData(completionResult);
+        }
+
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred while fetching data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Transform priority data for bar chart
+  const transformedPriorityData = priorityData ? [
+    { category: "Low", value: priorityData.LOW },
+    { category: "Medium", value: priorityData.MEDIUM },
+    { category: "High", value: priorityData.HIGH },
+  ] : [];
+
+  // Transform status data for pie chart
+  const transformedStatusData = statusData ? [
+    { name: "Pending", value: statusData.PENDING },
+    { name: "In Progress", value: statusData.IN_PROGRESS },
+    { name: "Completed", value: statusData.COMPLETED },
+  ] : [];
+
+  // Transform completion data for metrics and task distribution
+  const metrics = completionData ? [
     {
       title: "Total Tasks",
-      value: "128",
-      subtitle: "New + default tasks assigned",
+      value: completionData.totalTasks.toString(),
+      subtitle: "Daily + new tasks assigned",
     },
     {
       title: "Tasks Completed",
-      value: "85",
-      subtitle: "66.4% of assigned tasks are done",
+      value: completionData.completedTasks.toString(),
+      subtitle: `${completionData.completionRate.toFixed(1)}% of assigned tasks are done`,
     },
-  ];
+  ] : [];
 
-  // Updated data for the left pie chart - Task Distribution
-  const taskDistributionData = [
-    { name: "New Tasks", value: 18 },
-    { name: "Default Tasks", value: 27 },
-  ];
+  // Task distribution data from completion breakdown
+  const taskDistributionData = completionData ? [
+    { name: "Daily Tasks", value: completionData.breakdown.daily.total },
+    { name: "New Tasks", value: completionData.breakdown.new.total },
+  ] : [];
 
-  // Right pie chart data remains the same
-  const statusData = [
-    { name: "Pending", value: 12 },
-    { name: "In Progress", value: 8 },
-    { name: "Completed", value: 25 },
-  ];
+  if (loading) {
+    return (
+      <div className="min-h-screen p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-4 text-lg">Loading dashboard data...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const priorityData = [
-    { category: "Low", value: 15 },
-    { category: "Medium", value: 20 },
-    { category: "High", value: 10 },
-  ];
+  if (error) {
+    return (
+      <div className="min-h-screen p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            <strong className="font-bold">Error: </strong>
+            <span className="block sm:inline">{error}</span>
+          </div>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-6">
@@ -71,13 +202,16 @@ const OperationOverviewSection: React.FC = () => {
             data={taskDistributionData}
             title="Task Distribution"
           />
-          <PieChartComponent data={statusData} title="Status Distribution" />
+          <PieChartComponent 
+            data={transformedStatusData} 
+            title="Status Distribution" 
+          />
         </div>
 
         {/* Bar Chart and Weekly Trend */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
           <BarChartComponent
-            data={priorityData}
+            data={transformedPriorityData}
             title="Priority Distribution"
           />
           <WeeklyTrendChart data={weeklyTrendData} title="Weekly Task Trend" />

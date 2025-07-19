@@ -1,32 +1,31 @@
 "use client";
 import { useAuth } from "@/src/app/contexts/AuthProvider";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useCallback, useMemo } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRole?: string;
-  redirectTo?: string; // Optional override for custom redirect
+  redirectTo?: string;
 }
 
 export default function ProtectedRoute({
   children,
   requiredRole,
-  redirectTo, // If provided, will override automatic detection
+  redirectTo,
 }: ProtectedRouteProps) {
   const { isAuthenticated, user, isLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
-  // Function to determine redirect path based on current route
-  const getRedirectPath = () => {
+  // Memoize these functions to prevent infinite re-renders
+  const getRedirectPath = useMemo(() => {
     if (redirectTo) {
-      return redirectTo; // Use custom redirect if provided
+      return redirectTo;
     }
 
-    // Auto-detect based on current path
     if (pathname.includes("/admin") || pathname.includes("/dashboard/admin")) {
       return "/auth/login/admin";
     } else if (
@@ -41,17 +40,14 @@ export default function ProtectedRoute({
       return "/auth/login/user";
     }
 
-    // Default fallback
     return "/auth/login/admin";
-  };
+  }, [redirectTo, pathname]);
 
-  // Function to get appropriate role based on path
-  const getExpectedRole = () => {
+  const getExpectedRole = useMemo(() => {
     if (requiredRole) {
-      return requiredRole; // Use explicitly provided role
+      return requiredRole;
     }
 
-    // Auto-detect role based on current path
     if (pathname.includes("/admin") || pathname.includes("/dashboard/admin")) {
       return "ADMIN";
     } else if (
@@ -59,48 +55,50 @@ export default function ProtectedRoute({
       pathname.includes("/dashboard/operation")
     ) {
       return "OPERATION";
-    } 
+    }
     
-    return null; // No role requirement
-  };
+    return null;
+  }, [requiredRole, pathname]);
 
   useEffect(() => {
-    if (!isLoading) {
-      const redirectPath = getRedirectPath();
-      const expectedRole = getExpectedRole();
+    // Don't redirect if still loading
+    if (isLoading) {
+      return;
+    }
 
-      if (!isAuthenticated) {
-        toast.error("Please Login First", {
-          toastId: "login-required",
-        });
-        router.push(redirectPath);
-        return;
+    // Don't redirect if already on a login page
+    if (pathname.includes('/auth/login')) {
+      return;
+    }
+
+    if (!isAuthenticated) {
+      toast.error("Please Login First", {
+        toastId: "login-required",
+      });
+      router.push(getRedirectPath);
+      return;
+    }
+
+    if (getExpectedRole && user?.role !== getExpectedRole) {
+      toast.error("Access Denied: Insufficient permissions", {
+        toastId: "access-denied",
+      });
+
+      if (pathname.includes('/admin')) {
+        router.push("/auth/login/admin");
+      } else if (pathname.includes('/operation')) {
+        router.push("/auth/login/operation");
+      } else {
+        router.push("/");
       }
-
-      if (expectedRole && user?.role !== expectedRole) {
-        toast.error("Access Denied: Insufficient permissions", {
-          toastId: "access-denied",
-        });
-
-        // Redirect to appropriate unauthorized page or login
-        if (pathname.includes('/admin')) {
-          router.push("/auth/login/admin");
-        } else if (pathname.includes('/operation')) {
-          router.push("/auth/login/operation");
-        } else {
-          router.push("/");
-        }
-        return;
-      }
+      return;
     }
   }, [
     isAuthenticated,
-    user,
+    user?.role, // Only watch the role, not the entire user object
     isLoading,
     pathname,
     router,
-    requiredRole,
-    redirectTo,
     getRedirectPath,
     getExpectedRole,
   ]);
@@ -114,6 +112,16 @@ export default function ProtectedRoute({
     );
   }
 
+  // Don't render anything if on login page (let the login page handle itself)
+  if (pathname.includes('/auth/login')) {
+    return (
+      <>
+        {children}
+        <ToastContainer />
+      </>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <div>
@@ -122,8 +130,7 @@ export default function ProtectedRoute({
     );
   }
 
-  const expectedRole = getExpectedRole();
-  if (expectedRole && user?.role !== expectedRole) {
+  if (getExpectedRole && user?.role !== getExpectedRole) {
     return (
       <div>
         <ToastContainer />
