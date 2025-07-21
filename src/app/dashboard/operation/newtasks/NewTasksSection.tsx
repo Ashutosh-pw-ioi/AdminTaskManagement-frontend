@@ -1,163 +1,126 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { NewTasks as InitialTasks } from "./NewTasks";
+import React from "react";
 import EmptyList from "../EmptyList";
-import SimpleTable from "../../Table/SimpleTable";
+import LoadingState from "../dailytasks/utils/LoadingState";
+import ErrorState from "../dailytasks/utils/ErrorState";
+import TaskHeader from "../dailytasks/utils/TaskHeader";
+import TaskSection from "./utils/TaskSection";
+import { useNewTaskManagement } from "./utils/useNewTaskManagement";
+import { getNewTaskTableProps } from "./utils/newTaskUtils";
 
-type Task = {
-  id: number;
-  title: string;
-  description?: string;
-  priority: string;
-  status: string;
-  assigned_by: string;
-  due_date: string;
-  assigned_to: string[];
-};
+const NewTasksSection: React.FC = () => {
+  const {
+    taskCategories,
+    loading,
+    error,
+    collapsibleState,
+    fetchTasks,
+    handleEdit,
+    handleBulkUpdate,
+    toggleCollapsible,
+    hasChanges,
+  } = useNewTaskManagement();
 
-export default function NewTasksSection() {
-  const [tasks, setTasks] = useState<Task[]>(InitialTasks);
-  const [upcomingTasks, setUpcomingTasks] = useState<Task[]>([]);
-  const [overdueTasks, setOverdueTasks] = useState<Task[]>([]);
-  const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
-  const [isOverdueCollapsed, setIsOverdueCollapsed] = useState<boolean>(true);
-  const [isCompletedCollapsed, setIsCompletedCollapsed] =
-    useState<boolean>(true);
+  const tableProps = getNewTaskTableProps();
 
-  function enforceDescription(task: Task): Task {
-    return {
-      ...task,
-      description: task.description ?? "No description provided.",
-    };
+  // Loading state
+  if (loading) {
+    return (
+      <div className="p-4">
+        <div className="text-3xl font-bold mb-8 text-gray-900">
+          New Tasks Management
+        </div>
+        <LoadingState message="Loading new tasks..." />
+      </div>
+    );
   }
 
-  function splitTasksByDueDate(tasks: Task[]): {
-    upcoming: Task[];
-    overdue: Task[];
-    completed: Task[];
-  } {
-    const currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0); 
-
-    const upcoming: Task[] = [];
-    const overdue: Task[] = [];
-    const completed: Task[] = [];
-
-    tasks.forEach((task: Task) => {
-      const taskDueDate = new Date(task.due_date);
-      taskDueDate.setHours(0, 0, 0, 0);
-
-      if (taskDueDate >= currentDate) {
-        upcoming.push(task);
-      } else {
-        if (task.status === "completed") {
-          completed.push(task);
-        } else if (task.status === "in progress" || task.status === "pending") {
-          overdue.push(task);
-        }
-      }
-    });
-
-    return { upcoming, overdue, completed };
+  // Error state
+  if (error) {
+    return (
+      <div className="p-4">
+        <div className="text-3xl font-bold mb-8 text-gray-900">
+          New Tasks Management
+        </div>
+        <ErrorState error={error} onRetry={fetchTasks} />
+      </div>
+    );
   }
 
-  useEffect(() => {
-    const processedTasks = InitialTasks.map((task) => enforceDescription(task));
-    setTasks(processedTasks);
+  // Check if there are any tasks
+  const totalTasks = 
+    taskCategories.upcoming.length + 
+    taskCategories.overdue.length + 
+    taskCategories.completed.length;
 
-    const { upcoming, overdue, completed } =
-      splitTasksByDueDate(processedTasks);
-    setUpcomingTasks(upcoming);
-    setOverdueTasks(overdue);
-    setCompletedTasks(completed);
-  }, []);
+  // Empty state
+  if (totalTasks === 0) {
+    return (
+      <div className="min-h-screen">
+        <EmptyList taskType="new" />
+      </div>
+    );
+  }
 
-  const tableProps = {
-    searchFields: [],
-    itemsPerPage: 4,
-    badgeFields: ["priority", "assigned_to", "assigned_by"],
-    arrayFields: ["assigned_to"],
-    dropdownFields: [
-      {
-        field: "status",
-        options: [
-          { value: "pending", label: "Pending" },
-          { value: "in progress", label: "In Progress" },
-          { value: "completed", label: "Completed" },
-        ],
-      },
-    ],
-  };
-
+  // Main content
   return (
-    <div className="p-4 relative">
-      {tasks.length > 0 ? (
-        <div className="w-full space-y-8">
-          <div className="text-3xl font-bold mb-8">New Tasks Management</div>
+    <div className="p-4">
+      <div className="w-full max-w-7xl mx-auto space-y-8">
+        <TaskHeader
+          title="New Tasks Management"
+          onBulkUpdate={handleBulkUpdate}
+          onRefresh={fetchTasks}
+          hasChanges={hasChanges}
+        />
 
-          <div className="bg-green-50 p-6 rounded-lg border border-green-200">
-            <h2 className="text-2xl font-semibold mb-4 text-green-800">
-              Upcoming Tasks ({upcomingTasks.length})
-            </h2>
-            {upcomingTasks.length > 0 ? (
-              <SimpleTable data={upcomingTasks} {...tableProps} />
-            ) : (
-              <p className="text-green-600 italic">No upcoming tasks</p>
-            )}
-          </div>
+        {/* Upcoming Tasks */}
+        <TaskSection
+          title="Upcoming Tasks"
+          tasks={taskCategories.upcoming}
+          count={taskCategories.upcoming.length}
+          bgColor="bg-green-50"
+          borderColor="border-green-200"
+          textColor="text-green-800"
+          emptyMessage="No upcoming tasks"
+          tableProps={tableProps}
+          onEdit={handleEdit}
+        />
 
-          <div className="bg-red-50 p-6 rounded-lg border border-red-200">
-            <div
-              className="flex items-center justify-between cursor-pointer"
-              onClick={() => setIsOverdueCollapsed(!isOverdueCollapsed)}
-            >
-              <h2 className="text-2xl font-semibold text-red-800">
-                Overdue Tasks ({overdueTasks.length})
-              </h2>
-              <span className="text-red-600 text-xl">
-                {isOverdueCollapsed ? "▼" : "▲"}
-              </span>
-            </div>
-            {!isOverdueCollapsed && (
-              <div className="mt-4">
-                {overdueTasks.length > 0 ? (
-                  <SimpleTable data={overdueTasks} {...tableProps} />
-                ) : (
-                  <p className="text-red-600 italic">No overdue tasks</p>
-                )}
-              </div>
-            )}
-          </div>
+        {/* Overdue Tasks */}
+        <TaskSection
+          title="Overdue Tasks"
+          tasks={taskCategories.overdue}
+          count={taskCategories.overdue.length}
+          bgColor="bg-red-50"
+          borderColor="border-red-200"
+          textColor="text-red-800"
+          emptyMessage="No overdue tasks"
+          isCollapsible={true}
+          isCollapsed={collapsibleState.overdue}
+          onToggleCollapse={() => toggleCollapsible('overdue')}
+          tableProps={tableProps}
+          onEdit={handleEdit}
+        />
 
-          <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
-            <div
-              className="flex items-center justify-between cursor-pointer"
-              onClick={() => setIsCompletedCollapsed(!isCompletedCollapsed)}
-            >
-              <h2 className="text-2xl font-semibold text-blue-800">
-                Completed Tasks ({completedTasks.length})
-              </h2>
-              <span className="text-blue-600 text-xl">
-                {isCompletedCollapsed ? "▼" : "▲"}
-              </span>
-            </div>
-            {!isCompletedCollapsed && (
-              <div className="mt-4">
-                {completedTasks.length > 0 ? (
-                  <SimpleTable data={completedTasks} {...tableProps} />
-                ) : (
-                  <p className="text-blue-600 italic">No completed tasks</p>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      ) : (
-        <div className="h-screen">
-          <EmptyList taskType={"new"} />
-        </div>
-      )}
+        {/* Completed Tasks */}
+        <TaskSection
+          title="Completed Tasks"
+          tasks={taskCategories.completed}
+          count={taskCategories.completed.length}
+          bgColor="bg-blue-50"
+          borderColor="border-blue-200"
+          textColor="text-blue-800"
+          emptyMessage="No completed tasks"
+          isCollapsible={true}
+          isCollapsed={collapsibleState.completed}
+          onToggleCollapse={() => toggleCollapsible('completed')}
+          tableProps={tableProps}
+          onEdit={handleEdit}
+        />
+      </div>
     </div>
   );
-}
+};
+
+export default NewTasksSection;

@@ -5,7 +5,7 @@ import DeleteModal from "./DeleteModal";
 
 interface TableItem {
   id: string | number;
-  [key: string]: any;
+  [key: string]: string | number | boolean | string[] | number[];
 }
 
 interface Column {
@@ -195,7 +195,7 @@ const SimpleTable: React.FC<SimpleTableProps> = ({
               String(value)
             )} hover:opacity-80 transition-opacity`}
           >
-            <span>{value}</span>
+            <span>{String(value)}</span>
             <ChevronDown
               className={`w-3 h-3 transition-transform ${
                 isOpen ? "rotate-180" : ""
@@ -245,7 +245,7 @@ const SimpleTable: React.FC<SimpleTableProps> = ({
             String(value)
           )}`}
         >
-          {value}
+          {String(value)}
         </div>
       );
     }
@@ -316,8 +316,8 @@ const SimpleTable: React.FC<SimpleTableProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {paginatedData.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50">
+              {paginatedData.map((item,index) => (
+                <tr key={index} className="hover:bg-gray-50">
                   {columns.map((column) => (
                     <td key={column.key} className="py-4 px-[18px] text-gray-600 text-sm">
                       {renderCell(item, column)}

@@ -1,59 +1,78 @@
-import React from "react";
-
+import React, { useMemo } from "react";
 import MetricCard from "../overviewComponents/MetricCard";
 import BarChartComponent from "../overviewComponents/BarChartComponent";
 import PieChartComponent from "../overviewComponents/PieChartComponent";
 import WeeklyTrendChart from "../overviewComponents/WeeklyTrendChart";
 
+// Utils imports
+import { useDataFetcher } from "./utils/useDataFetcher";
+import { 
+  transformPriorityData, 
+  transformStatusData, 
+  transformTaskDistributionData, 
+  generateMetricsData, 
+  getWeeklyTrendData 
+} from "./utils/dataUtils";
+import { LoadingComponent, ErrorComponent, RefreshButton } from "./utils/uiComponents";
+
 const OperationOverviewSection: React.FC = () => {
-  const weeklyTrendData = [
-    { day: "Mon", tasks: 18 },
-    { day: "Tue", tasks: 22 },
-    { day: "Wed", tasks: 15 },
-    { day: "Thu", tasks: 20 },
-    { day: "Fri", tasks: 25 },
-    { day: "Sat", tasks: 10 },
-    { day: "Sun", tasks: 5 },
-  ];
+  const {
+    priorityData,
+    statusData,
+    completionData,
+    loading,
+    error,
+    handleRefresh,
+    isFetching
+  } = useDataFetcher();
 
-  const metrics = [
-    {
-      title: "Total Tasks",
-      value: "128",
-      subtitle: "New + default tasks assigned",
-    },
-    {
-      title: "Tasks Completed",
-      value: "85",
-      subtitle: "66.4% of assigned tasks are done",
-    },
-  ];
+  const weeklyTrendData = useMemo(() => getWeeklyTrendData(), []);
 
-  // Updated data for the left pie chart - Task Distribution
-  const taskDistributionData = [
-    { name: "New Tasks", value: 18 },
-    { name: "Default Tasks", value: 27 },
-  ];
+  const transformedPriorityData = useMemo(() => 
+    transformPriorityData(priorityData), 
+    [priorityData]
+  );
 
-  // Right pie chart data remains the same
-  const statusData = [
-    { name: "Pending", value: 12 },
-    { name: "In Progress", value: 8 },
-    { name: "Completed", value: 25 },
-  ];
+  const transformedStatusData = useMemo(() => 
+    transformStatusData(statusData), 
+    [statusData]
+  );
 
-  const priorityData = [
-    { category: "Low", value: 15 },
-    { category: "Medium", value: 20 },
-    { category: "High", value: 10 },
-  ];
+  const metrics = useMemo(() => 
+    generateMetricsData(completionData), 
+    [completionData]
+  );
+
+  const taskDistributionData = useMemo(() => 
+    transformTaskDistributionData(completionData), 
+    [completionData]
+  );
+
+  if (loading) {
+    return <LoadingComponent />;
+  }
+
+  if (error) {
+    return (
+      <ErrorComponent 
+        error={error} 
+        onRetry={handleRefresh} 
+        isRetrying={isFetching} 
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-4">Admin Overview</h1>
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-3xl font-bold">Operation Overview</h1>
+          <RefreshButton 
+            onRefresh={handleRefresh} 
+            isRefreshing={isFetching} 
+          />
+        </div>
 
-        {/* Top 2 Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 text-center gap-6 mb-4">
           {metrics.map((metric, index) => (
             <MetricCard
@@ -65,19 +84,20 @@ const OperationOverviewSection: React.FC = () => {
           ))}
         </div>
 
-        {/* Two Pie Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
           <PieChartComponent
             data={taskDistributionData}
             title="Task Distribution"
           />
-          <PieChartComponent data={statusData} title="Status Distribution" />
+          <PieChartComponent 
+            data={transformedStatusData} 
+            title="Status Distribution" 
+          />
         </div>
 
-        {/* Bar Chart and Weekly Trend */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
           <BarChartComponent
-            data={priorityData}
+            data={transformedPriorityData}
             title="Priority Distribution"
           />
           <WeeklyTrendChart data={weeklyTrendData} title="Weekly Task Trend" />
