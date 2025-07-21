@@ -3,7 +3,7 @@ import { X } from "lucide-react";
 
 interface TableItem {
   id: string | number;
-  [key: string]: any;
+  [key: string]: string | number | string[] | number[] | boolean;
 }
 
 interface Column {
@@ -44,7 +44,7 @@ const EditModal: React.FC<EditModalProps> = ({
       arrayFields.forEach((field) => {
         if (processedItem[field] && typeof processedItem[field] === "string") {
           // Convert comma-separated string back to array
-          processedItem[field] = processedItem[field]
+          processedItem[field] = (processedItem[field] as string)
             .split(",")
             .map((item: string) => item.trim())
             .filter((item: string) => item.length > 0);
@@ -61,22 +61,22 @@ const EditModal: React.FC<EditModalProps> = ({
     }
   };
 
-  const getDisplayValue = (column: Column, value: any) => {
+  const getDisplayValue = (column: Column, value: TableItem[string]): string => {
     // If it's an array field, convert array to comma-separated string for editing
     if (arrayFields.includes(column.key) && Array.isArray(value)) {
       return value.join(", ");
     }
-    return value || "";
+    return String(value || "");
   };
 
-  const renderEditInput = (column: Column, value: any) => {
+  const renderEditInput = (column: Column, value: TableItem[string]) => {
     if (!editItem) return null;
 
     if (column.key === "id") {
       return (
         <input
           type="text"
-          value={value}
+          value={String(value)}
           disabled
           className="w-full p-2 border rounded bg-gray-100"
         />
@@ -134,7 +134,7 @@ const EditModal: React.FC<EditModalProps> = ({
                     <span className="text-xs text-[#1B3A6A] ml-1">(List)</span>
                   )}
                 </label>
-                {renderEditInput(column, editItem?.[column.key])}
+                {renderEditInput(column, editItem?.[column.key] ?? "")}
               </div>
             ))}
           </div>

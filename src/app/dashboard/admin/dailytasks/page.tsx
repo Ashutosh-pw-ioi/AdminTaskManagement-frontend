@@ -10,7 +10,8 @@ export default function Page() {
   return(
     <ProtectedRoute requiredRole="ADMIN">
       
-          <DailyTasksSection />
+          
+      <DailyTasksSection />
         
     </ProtectedRoute>
   );

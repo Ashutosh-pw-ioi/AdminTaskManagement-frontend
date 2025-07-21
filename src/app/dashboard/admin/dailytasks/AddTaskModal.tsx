@@ -1,155 +1,73 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { X, ChevronDown } from "lucide-react";
 
-const API_BASE_URL = "http://localhost:8000/api/admin";
-
-interface Task {
-  id: string;
-  title: string;
-  description?: string;
-  priority?: "LOW" | "MEDIUM" | "HIGH";
-  status?: "PENDING" | "IN_PROGRESS" | "COMPLETED";
-  assigned_to?: string;
-}
-
-interface FormTask {
-  defaultTaskId: string;
-  operatorIds: string[];
-  priority: "LOW" | "MEDIUM" | "HIGH";
-  status: "PENDING" | "IN_PROGRESS" | "COMPLETED";
-}
-
-interface Operator {
-  id: string;
-  name: string;
-  email: string;
-}
-
-interface AddTaskModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (task: FormTask) => void;
-}
-
-// Helper function to get auth headers
-const getAuthHeaders = () => {
-  return {
-    'Content-Type': 'application/json',
-  };
-};
-
-// Helper function to enforce description
-const enforceDescription = (task: any) => {
-  return {
-    ...task,
-    description: task.description || ''
-  };
-};
+// Import from utils
+import {
+  AddTaskModalProps,
+  Task,
+  Priority,
+  Status,
+  PRIORITY_OPTIONS,
+  STATUS_OPTIONS,
+  useDefaultTasks,
+  useOperators,
+  getOperatorNameById,
+  validateFormData,
+  createFormData,
+  getInitialFormState,
+} from "./addTaskModalUtils";
 
 const AddTaskModal: React.FC<AddTaskModalProps> = ({
   isOpen,
   onClose,
   onSubmit,
 }) => {
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [priority, setPriority] = useState<"LOW" | "MEDIUM" | "HIGH">("MEDIUM");
-  const [status, setStatus] = useState<"PENDING" | "IN_PROGRESS" | "COMPLETED">("PENDING");
-  const [assignedTo, setAssignedTo] = useState<string[]>([]);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [operators, setOperators] = useState<Operator[]>([]);
-  const [defaultTasks, setDefaultTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [tasksLoading, setTasksLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [tasksError, setTasksError] = useState<string | null>(null);
+  // Form state
+  const {
+    selectedTask,
+    priority,
+    status,
+    assignedTo,
+    isDropdownOpen,
+    error
+  } = getInitialFormState();
 
-  // Fetch default tasks from backend
-  const fetchDefaultTasks = async () => {
-    try {
-      setTasksLoading(true);
-      setTasksError(null);
-      
-      const response = await fetch(`${API_BASE_URL}/getDefaultTasks`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-        credentials: 'include',
-      });
+  const [currentSelectedTask, setCurrentSelectedTask] = useState<Task | null>(selectedTask);
+  const [currentPriority, setCurrentPriority] = useState<Priority>(priority);
+  const [currentStatus, setCurrentStatus] = useState<Status>(status);
+  const [currentAssignedTo, setCurrentAssignedTo] = useState<string[]>(assignedTo);
+  const [currentIsDropdownOpen, setCurrentIsDropdownOpen] = useState(isDropdownOpen);
+  const [currentError, setCurrentError] = useState(error);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+  // Custom hooks
+  const {
+    defaultTasks,
+    tasksLoading,
+    tasksError,
+    refetchTasks
+  } = useDefaultTasks(isOpen);
 
-      const result = await response.json();
-      
-      if (result.success) {
-        const tasksWithDescription = result.data.map((task: any) => enforceDescription(task));
-        setDefaultTasks(tasksWithDescription);
-      } else {
-        throw new Error('Failed to fetch default tasks');
-      }
-    } catch (err) {
-      console.error('Error fetching default tasks:', err);
-      setTasksError(err instanceof Error ? err.message : 'Failed to fetch default tasks');
-    } finally {
-      setTasksLoading(false);
-    }
-  };
+  const {
+    operators,
+    loading,
+    error: operatorsError,
+  } = useOperators(isOpen);
 
-  // Fetch operators from backend
-  const fetchOperators = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      const response = await fetch(`${API_BASE_URL}/getOperators`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-        credentials: "include"
-      });
-      
-      if (!response.ok) {
-        throw new Error("Failed to fetch operators");
-      }
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        setOperators(data.data);
-        // Set default assignee to first operator if available
-        if (data.data.length > 0 && assignedTo.length === 0) {
-          setAssignedTo([data.data[0].id]);
-        }
-      } else {
-        throw new Error("Failed to load operators");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load operators");
-      console.error("Error fetching operators:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch data when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      fetchDefaultTasks();
-      fetchOperators();
-    }
-  }, [isOpen]);
-
+  // Event handlers
   const handleTaskSelect = (task: Task) => {
-    setSelectedTask(task);
-    setPriority("MEDIUM");
-    setStatus("PENDING");
+    setCurrentSelectedTask(task);
+    setCurrentPriority("MEDIUM");
+    setCurrentStatus("PENDING");
+    
     // Keep existing assigned_to or set to first operator if available
-    if (assignedTo.length === 0 && operators.length > 0) {
-      setAssignedTo([operators[0].id]);
+    if (currentAssignedTo.length === 0 && operators.length > 0) {
+      setCurrentAssignedTo([operators[0].id]);
     }
-    setIsDropdownOpen(false);
+    setCurrentIsDropdownOpen(false);
   };
 
   const handleAssigneeToggle = (operatorId: string) => {
-    setAssignedTo((prev) =>
+    setCurrentAssignedTo((prev) =>
       prev.includes(operatorId)
         ? prev.filter((id) => id !== operatorId)
         : [...prev, operatorId]
@@ -157,42 +75,36 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
   };
 
   const handleSubmit = () => {
-    if (!selectedTask) {
-      setError("Please select a default task");
+    const validationError = validateFormData(currentSelectedTask, currentAssignedTo);
+    
+    if (validationError) {
+      setCurrentError(validationError);
       return;
     }
 
-    if (assignedTo.length === 0) {
-      setError("Please assign to at least one operator");
-      return;
-    }
-
-    const formData: FormTask = {
-      defaultTaskId: selectedTask.id,
-      operatorIds: assignedTo,
-      priority,
-      status,
-    };
+    const formData = createFormData(
+      currentSelectedTask!,
+      currentAssignedTo,
+      currentPriority,
+      currentStatus
+    );
 
     onSubmit(formData);
 
     // Reset form
-    setSelectedTask(null);
-    setPriority("MEDIUM");
-    setStatus("PENDING");
-    setAssignedTo([]);
-    setIsDropdownOpen(false);
-    setError("");
+    const initialState = getInitialFormState();
+    setCurrentSelectedTask(initialState.selectedTask);
+    setCurrentPriority(initialState.priority);
+    setCurrentStatus(initialState.status);
+    setCurrentAssignedTo(initialState.assignedTo);
+    setCurrentIsDropdownOpen(initialState.isDropdownOpen);
+    setCurrentError(initialState.error);
     onClose();
   };
 
-  // Get operator name by ID
-  const getOperatorNameById = (id: string) => {
-    const operator = operators.find(op => op.id === id);
-    return operator ? operator.name : id;
-  };
-
   if (!isOpen) return null;
+
+  const displayError = currentError || operatorsError;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-lg flex items-center justify-center z-50 p-4">
@@ -208,9 +120,9 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
           />
         </button>
 
-        {error && (
+        {displayError && (
           <div className="mx-6 mt-6 bg-red-50 border border-red-200 rounded-lg p-3">
-            <p className="text-red-800 text-sm">{error}</p>
+            <p className="text-red-800 text-sm">{displayError}</p>
           </div>
         )}
 
@@ -229,7 +141,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
               <div className="flex flex-col items-center justify-center p-8">
                 <div className="text-red-500 text-center mb-4">{tasksError}</div>
                 <button
-                  onClick={fetchDefaultTasks}
+                  onClick={refetchTasks}
                   className="px-4 py-2 bg-[#1B3A6A] text-white rounded hover:bg-[#486AA0] transition-colors"
                 >
                   Retry
@@ -245,7 +157,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                   <div
                     key={task.id}
                     className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-all hover:shadow-sm hover:bg-gray-50 ${
-                      selectedTask?.id === task.id
+                      currentSelectedTask?.id === task.id
                         ? "border-[#1B3A6A] bg-blue-50"
                         : "border-gray-200"
                     }`}
@@ -280,7 +192,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
           {/* Right Pane - Form */}
           <div className="w-1/2 p-6 overflow-y-auto">
             <h3 className="text-xl font-bold text-gray-800 mb-4">
-              {selectedTask ? "Create Daily Task" : "Select a Default Task"}
+              {currentSelectedTask ? "Create Daily Task" : "Select a Default Task"}
             </h3>
 
             <div className="space-y-4">
@@ -290,7 +202,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                 </label>
                 <input
                   type="text"
-                  value={selectedTask?.title || ""}
+                  value={currentSelectedTask?.title || ""}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-200"
                   placeholder="Select from Left Pane"
                   required
@@ -303,7 +215,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                   Description
                 </label>
                 <textarea
-                  value={selectedTask?.description || ""}
+                  value={currentSelectedTask?.description || ""}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-200 resize-none"
                   rows={3}
                   placeholder="Select from Left Pane"
@@ -317,15 +229,15 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                 </label>
                 <div className="relative">
                   <select
-                    value={priority}
-                    onChange={(e) =>
-                      setPriority(e.target.value as "LOW" | "MEDIUM" | "HIGH")
-                    }
+                    value={currentPriority}
+                    onChange={(e) => setCurrentPriority(e.target.value as Priority)}
                     className="appearance-none w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-[#1B3A6A] focus:border-[#1B3A6A]"
                   >
-                    <option value="LOW">Low</option>
-                    <option value="MEDIUM">Medium</option>
-                    <option value="HIGH">High</option>
+                    {PRIORITY_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                   <ChevronDown
                     size={18}
@@ -340,17 +252,15 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                 </label>
                 <div className="relative">
                   <select
-                    value={status}
-                    onChange={(e) =>
-                      setStatus(
-                        e.target.value as "PENDING" | "IN_PROGRESS" | "COMPLETED"
-                      )
-                    }
+                    value={currentStatus}
+                    onChange={(e) => setCurrentStatus(e.target.value as Status)}
                     className="appearance-none w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-[#1B3A6A] focus:border-[#1B3A6A]"
                   >
-                    <option value="PENDING">Pending</option>
-                    <option value="IN_PROGRESS">In Progress</option>
-                    <option value="COMPLETED">Completed</option>
+                    {STATUS_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                   <ChevronDown
                     size={18}
@@ -366,20 +276,20 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                 <div className="relative">
                   <div
                     className="flex items-center border border-gray-300 rounded-md px-3 py-2 bg-white focus-within:ring-2 focus-within:ring-[#1B3A6A] focus-within:border-[#1B3A6A] cursor-pointer"
-                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    onClick={() => setCurrentIsDropdownOpen(!currentIsDropdownOpen)}
                   >
                     <div className="flex-1 flex flex-wrap gap-1">
                       {loading ? (
                         <span className="text-gray-400 text-sm">Loading operators...</span>
-                      ) : error ? (
-                        <span className="text-red-500 text-sm">{error}</span>
-                      ) : assignedTo.length > 0 ? (
-                        assignedTo.map((operatorId) => (
+                      ) : operatorsError ? (
+                        <span className="text-red-500 text-sm">{operatorsError}</span>
+                      ) : currentAssignedTo.length > 0 ? (
+                        currentAssignedTo.map((operatorId) => (
                           <span
                             key={operatorId}
                             className="bg-[#1B3A6A] text-white text-xs px-2 py-1 rounded"
                           >
-                            {getOperatorNameById(operatorId)}
+                            {getOperatorNameById(operators, operatorId)}
                           </span>
                         ))
                       ) : (
@@ -391,12 +301,12 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                     <ChevronDown
                       size={18}
                       className={`ml-2 text-gray-500 transition-transform ${
-                        isDropdownOpen ? "rotate-180" : ""
+                        currentIsDropdownOpen ? "rotate-180" : ""
                       }`}
                     />
                   </div>
 
-                  {isDropdownOpen && !loading && (
+                  {currentIsDropdownOpen && !loading && (
                     <div className="absolute z-10 mt-1 bg-white border border-gray-300 rounded shadow w-full max-h-48 overflow-y-auto">
                       {operators.map((operator) => (
                         <label
@@ -405,7 +315,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                         >
                           <input
                             type="checkbox"
-                            checked={assignedTo.includes(operator.id)}
+                            checked={currentAssignedTo.includes(operator.id)}
                             onChange={() => handleAssigneeToggle(operator.id)}
                             className="mr-2"
                           />
@@ -427,7 +337,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={!selectedTask || assignedTo.length === 0}
+                disabled={!currentSelectedTask || currentAssignedTo.length === 0}
                 className="px-4 py-2 bg-[#1B3A6A] text-white rounded-sm hover:bg-[#486AA0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 Create Task
