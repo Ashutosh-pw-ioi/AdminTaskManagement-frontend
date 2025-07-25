@@ -194,7 +194,7 @@ const OperationLayout = ({ children }: { children: React.ReactNode }) => {
         </div>
 
         <div className="flex-1 bg-[#FFE4B8]">
-          <div className="p-3">{children}</div>
+          <div>{children}</div>
         </div>
       </div>
     </ProtectedRoute>

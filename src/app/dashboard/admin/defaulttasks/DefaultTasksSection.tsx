@@ -1,101 +1,137 @@
 "use client";
-import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import EmptyList from "../EmptyList";
 import { Plus } from "lucide-react";
 import SimpleTable from "../../Table/SimpleTable";
 import AddTaskModal from "./AddTaskModal";
 import { useAuth } from "@/src/app/contexts/AuthProvider";
 
-// Import types and utilities
-import { Task, TableItem } from "./defaultTaskUtils/types";
-import { prepareTasksForDisplay } from "./defaultTaskUtils/taskUtils";
-import { RequestTracker, fetchTasks, createTask, updateTask, deleteTask } from "./defaultTaskUtils/taskApi";
-import { invalidateCache } from "./defaultTaskUtils/taskCache";
+// Import our modular components
+import { TableItem, TaskState } from '@/src/app/dashboard/admin/defaulttasks/defaultTaskUtils/types';
+import { TaskApi } from '@/src/app/dashboard/admin/defaulttasks/defaultTaskUtils/taskApi';
+import { TaskUtils } from './defaultTaskUtils/taskUtils';
+import { TaskCache } from './defaultTaskUtils/taskCache';
 
 export default function DefaultTasksSection() {
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [state, setState] = useState<TaskState>({
+    tasks: [],
+    loading: true,
+    error: null
+  });
   const [isAddModal, setIsAddModal] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
-  
-  const requestTracker = useRef(new RequestTracker());
 
-  const loadTasks = useCallback(async (forceRefresh = false) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const tasksData = await fetchTasks(requestTracker.current, forceRefresh);
-      setTasks(tasksData);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch tasks');
-    } finally {
-      setLoading(false);
-    }
+  // Update state helper
+  const updateState = useCallback((updates: Partial<TaskState>) => {
+    setState(prevState => ({ ...prevState, ...updates }));
   }, []);
 
-  useEffect(() => {
-    loadTasks().catch(() => {});
-  }, [loadTasks]);
+  // Fetch tasks with state management
+  const fetchTasks = useCallback(async (forceRefresh = false): Promise<void> => {
+    try {
+      updateState({ loading: true, error: null });
+      const tasks = await TaskApi.fetchTasks(forceRefresh);
+      updateState({ tasks, loading: false });
+    } catch (err) {
+      const errorMessage = TaskUtils.getErrorMessage(err, 'Failed to fetch tasks');
+      updateState({ loading: false, error: errorMessage });
+    }
+  }, [updateState]);
 
+  // Initialize tasks on component mount
+  useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
+
+  // Handle adding a new task
   const handleAddTask = useCallback(async (task: { title: string; description?: string }) => {
     try {
-      await createTask(requestTracker.current, task, user?.id);
-      await loadTasks(true);
-      setIsAddModal(false);
-      setError(null);
-    } catch (err) {
-      await loadTasks(true);
-      setError(err instanceof Error ? err.message : 'Failed to add task');
-    }
-  }, [user?.id, loadTasks]);
+      updateState({ error: null });
+      
+      const success = await TaskApi.createTask({
+        title: task.title,
+        description: task.description,
+        adminId: user?.id
+      });
 
+      if (success) {
+        await fetchTasks(true);
+        setIsAddModal(false);
+      }
+    } catch (err) {
+      const errorMessage = TaskUtils.getErrorMessage(err, 'Failed to add task');
+      updateState({ error: errorMessage });
+      // Refresh tasks to show current state
+      await fetchTasks(true);
+    }
+  }, [user?.id, fetchTasks, updateState]);
+
+  // Handle opening add modal
   const handleAddClick = useCallback(() => {
     setIsAddModal(true);
   }, []);
 
+  // Handle editing a task
   const handleEdit = useCallback(async (item: TableItem) => {
     try {
-      await updateTask(requestTracker.current, item);
-      await loadTasks(true);
+      updateState({ error: null });
+      
+      await TaskApi.updateTask(item.id, {
+        title: String(item.title),
+        description: String(item.description)
+      });
+      
+      await fetchTasks(true);
     } catch (err) {
-      await loadTasks(true);
-      setError(err instanceof Error ? err.message : 'Failed to update task');
+      const errorMessage = TaskUtils.getErrorMessage(err, 'Failed to update task');
+      updateState({ error: errorMessage });
+      // Refresh tasks to show current state
+      await fetchTasks(true);
     }
-  }, [loadTasks]);
+  }, [fetchTasks, updateState]);
 
+  // Handle deleting a task
   const handleDelete = useCallback(async (id: number | string) => {
     try {
-      await deleteTask(requestTracker.current, id, tasks);
-      await loadTasks(true);
-      setError(null);
+      updateState({ error: null });
+      
+      await TaskApi.deleteTask(id);
+      await fetchTasks(true);
     } catch (err) {
-      await loadTasks(true);
-      setError(err instanceof Error ? err.message : 'Failed to delete task');
+      const errorMessage = TaskUtils.getErrorMessage(err, 'Failed to delete task');
+      updateState({ error: errorMessage });
+      // Refresh tasks to show current state
+      await fetchTasks(true);
     }
-  }, [tasks, loadTasks]);
+  }, [fetchTasks, updateState]);
 
+  // Prepare tasks for table display
+  const displayTasks = useMemo(() => 
+    TaskUtils.prepareTasksForDisplay(state.tasks), 
+    [state.tasks]
+  );
+
+  // Handle retry action
   const handleRetry = useCallback(() => {
-    invalidateCache();
-    loadTasks(true);
-  }, [loadTasks]);
+    TaskCache.invalidateCache();
+    fetchTasks(true);
+  }, [fetchTasks]);
 
-  const displayTasks = useMemo(() => prepareTasksForDisplay(tasks), [tasks]);
-
-  if (loading) {
+  // Loading state
+  if (state.loading) {
     return (
-      <div className="p-4 h-screen relative flex items-center justify-center">
+      <div className="sm:p-4 h-screen relative flex items-center justify-center">
         <div className="text-lg">Loading tasks...</div>
       </div>
     );
   }
 
-  if (error) {
+  // Error state
+  if (state.error) {
     return (
-      <div className="p-4 h-screen relative">
+      <div className="sm:p-4 h-screen relative">
         <div className="text-red-500 text-center">
-          <p>Error: {error}</p>
+          <p>Error: {state.error}</p>
           <button 
             onClick={handleRetry}
             className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
@@ -107,6 +143,7 @@ export default function DefaultTasksSection() {
     );
   }
 
+  // Main render
   return (
     <div className="p-4 h-screen relative">
       {isAddModal && (
@@ -116,16 +153,17 @@ export default function DefaultTasksSection() {
           onSubmit={handleAddTask}
         />
       )}
+      
       <button
-        className="fixed top-6 right-6 w-10 h-10 bg-[#1B3A6A] rounded-full flex items-center justify-center mb-4 cursor-pointer shadow-xl"
+        className="fixed top-18 sm:top-6 right-6 w-10 h-10 bg-[#1B3A6A] rounded-full flex items-center justify-center mb-4 cursor-pointer shadow-xl"
         onClick={handleAddClick}
       >
         <Plus className="w-5 h-5 text-[#D4E3F5]" />
       </button>
 
-      {tasks.length > 0 ? (
+      {state.tasks.length > 0 ? (
         <div className="w-full">
-          <div className="text-3xl font-bold mb-8">
+          <div className="text-3xl sm:px-0 mt-5 sm:mt-0 font-bold mb-8">
             Default Tasks Management
           </div>
           <SimpleTable
@@ -134,6 +172,7 @@ export default function DefaultTasksSection() {
             onDelete={handleDelete}
             searchFields={["title", "description"]}
             itemsPerPage={6}
+            editableFields={["title", "description"]}
           />
         </div>
       ) : (

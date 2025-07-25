@@ -40,7 +40,7 @@ export const fetchStatusData = async (): Promise<ApiResponse<StatusData>> => {
   }, CACHE_TTL.STATUS);
 };
 
-export const fetchCompletionData = async (): Promise<ApiResponse<CompletionRateData>> => {
+export const fetchCompletionData = async (): Promise<CompletionRateData> => {
   return apiCache.getOrFetch(CACHE_KEYS.COMPLETION, async () => {
     const response = await fetch(`${API_BASE_URL}/getCompletionRate`, {
       method: 'GET',

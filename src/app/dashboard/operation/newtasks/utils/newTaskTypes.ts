@@ -1,4 +1,4 @@
-import { Table } from "lucide-react";
+
 import { TableItem } from "../../dailytasks/utils";
 
 export interface NewTaskAdmin {
@@ -45,10 +45,10 @@ export interface TransformedNewTask extends TableItem {
   status: string;
   assigned_by: string;
   due_date: string;
-  assigned_to: string[];
-  assignedDate: string;
-  isOverdue: boolean;
-  isCompleted: boolean;
+  
+ 
+  
+  
 }
 
 export type NewTaskStatus = "PENDING" | "IN_PROGRESS" | "COMPLETED";

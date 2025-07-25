@@ -24,7 +24,7 @@ export default function ProtectedRoute({
   const getRedirectPath = useMemo(() => {
     const path = (() => {
       if (redirectTo) {
-        console.log("Using custom redirect path:", redirectTo);
+      
         return redirectTo;
       }
 
@@ -40,13 +40,13 @@ export default function ProtectedRoute({
       return "/auth/login/admin";
     })();
     
-    console.log("Computed redirect path:", path, "for pathname:", pathname);
+  
     return path;
   }, [redirectTo, pathname]);
 
   const getExpectedRole = useMemo(() => {
     const role = (() => {
-      console.log("Required Role from props:", requiredRole);
+     
       if (requiredRole) {
         return requiredRole;
       }
@@ -63,44 +63,33 @@ export default function ProtectedRoute({
       return null;
     })();
     
-    console.log("Expected role computed:", role, "for pathname:", pathname);
+    
     return role;
   }, [requiredRole, pathname]);
 
   useEffect(() => {
-    console.log("=== ProtectedRoute Effect Debug ===");
-    console.log("Pathname:", pathname);
-    console.log("isLoading:", isLoading);
-    console.log("isAuthenticated:", isAuthenticated);
-    console.log("User:", user);
-    console.log("User role:", user?.role, "Type:", typeof user?.role);
-    console.log("Expected role:", getExpectedRole, "Type:", typeof getExpectedRole);
-    console.log("Role comparison result:", user?.role === getExpectedRole);
-    console.log("Role string comparison:", `"${user?.role}" === "${getExpectedRole}"`);
-    console.log("Redirect path:", getRedirectPath);
-    console.log("Has redirected:", hasRedirected.current);
-    console.log("===============================");
+   
 
     if (isLoading) {
-      console.log("Still loading, skipping checks");
+      
       hasRedirected.current = false;
       return;
     }
 
     if (pathname.includes('/auth/login')) {
-      console.log("On login page, skipping checks");
+      
       hasRedirected.current = false;
       return;
     }
 
     // Prevent multiple redirects
     if (hasRedirected.current) {
-      console.log("Already redirected, preventing duplicate redirect");
+     
       return;
     }
 
     if (!isAuthenticated) {
-      console.log("Not authenticated, redirecting to:", getRedirectPath);
+      
       hasRedirected.current = true;
       toast.error("Please Login First", {
         toastId: "login-required",
@@ -110,11 +99,7 @@ export default function ProtectedRoute({
     }
 
     if (getExpectedRole && user?.role !== getExpectedRole) {
-      console.log("Role mismatch detected!");
-      console.log("User role:", user?.role);
-      console.log("Expected role:", getExpectedRole);
-      console.log("Strict equality check:", user?.role === getExpectedRole);
-      console.log("Case insensitive check:", user?.role?.toUpperCase() === getExpectedRole?.toUpperCase());
+   
       
       hasRedirected.current = true;
       toast.error("Access Denied: Insufficient permissions", {
@@ -122,19 +107,19 @@ export default function ProtectedRoute({
       });
 
       if (pathname.includes('/admin')) {
-        console.log("Redirecting to admin login");
+     
         router.push("/auth/login/admin");
       } else if (pathname.includes('/operation')) {
-        console.log("Redirecting to operation login");
+       
         router.push("/auth/login/operation");
       } else {
-        console.log("Redirecting to home");
+        
         router.push("/");
       }
       return;
     }
 
-    console.log("All checks passed, access granted");
+    
     hasRedirected.current = false;
   }, [
     isAuthenticated,
@@ -192,7 +177,7 @@ export default function ProtectedRoute({
   }
 
   if (!isAuthenticated) {
-    console.log("Rendering: Not authenticated state");
+   
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
@@ -216,7 +201,7 @@ export default function ProtectedRoute({
   }
 
   if (getExpectedRole && user?.role !== getExpectedRole) {
-    console.log("Rendering: Role mismatch state");
+   
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
@@ -239,7 +224,7 @@ export default function ProtectedRoute({
     );
   }
 
-  console.log("Rendering: Protected content");
+
   return (
     <>
       {children}

@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useMemo } from "react";
 import EmptyList from "../EmptyList";
 import SimpleTable from "../../Table/SimpleTable";
@@ -8,6 +7,15 @@ import ErrorState from "./utils/ErrorState";
 import TaskHeader from "./utils/TaskHeader";
 import { useTaskManagement } from "./utils/useTaskManagement";
 import { getTaskDropdownConfig, findChangedTasks } from "./utils/taskUtils";
+
+// Add this date formatting function
+const formatDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  const day = date.getDate();
+  const month = date.toLocaleDateString('en-US', { month: 'short' }).toLowerCase();
+  const year = date.getFullYear();
+  return `${day} ${month} ${year}`;
+};
 
 const DefaultTasksSection: React.FC = () => {
   const {
@@ -20,13 +28,19 @@ const DefaultTasksSection: React.FC = () => {
     handleBulkUpdate,
   } = useTaskManagement();
 
-  
   const dropdownConfig = useMemo(() => getTaskDropdownConfig(), []);
-  
- 
+
   const hasChanges = useMemo(() => {
     return findChangedTasks(tasks, originalTasks).length > 0;
   }, [tasks, originalTasks]);
+
+  // Format the tasks data with formatted taskDate
+  const formattedTasks = useMemo(() => {
+    return tasks.map(task => ({
+      ...task,
+      taskDate: task.taskDate ? formatDate(task.taskDate) : 'No date'
+    }));
+  }, [tasks]);
 
   if (loading) {
     return (
@@ -39,7 +53,6 @@ const DefaultTasksSection: React.FC = () => {
     );
   }
 
-
   if (error) {
     return (
       <div className="p-4">
@@ -51,7 +64,6 @@ const DefaultTasksSection: React.FC = () => {
     );
   }
 
-
   if (tasks.length === 0) {
     return (
       <div className="min-h-screen">
@@ -59,6 +71,7 @@ const DefaultTasksSection: React.FC = () => {
       </div>
     );
   }
+
   return (
     <div className="p-4">
       <div className="w-full max-w-7xl mx-auto">
@@ -68,16 +81,17 @@ const DefaultTasksSection: React.FC = () => {
           onRefresh={fetchTasks}
           hasChanges={hasChanges}
         />
-        
+
         <div className="bg-white rounded-lg shadow-sm border">
           <SimpleTable
-            data={tasks}
+            data={formattedTasks} // Use formatted tasks instead of original tasks
             searchFields={["title", "description"]}
             itemsPerPage={10}
             badgeFields={["priority", "assigned_by"]}
             arrayFields={["assigned_by"]}
             dropdownFields={dropdownConfig}
             onEdit={handleEdit as (item: unknown) => void}
+            editableFields={["status"]}
           />
         </div>
       </div>

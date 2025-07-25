@@ -9,6 +9,10 @@ export interface StatusData {
   IN_PROGRESS: number;
   COMPLETED: number;
 }
+export type ApiResponse<T> = {
+  success: boolean;
+  data: T;
+};
 
 export interface CompletionRateData {
   operatorId: string;
@@ -28,11 +32,7 @@ export interface CompletionRateData {
   };
 }
 
-export interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-}
+
 
 export interface ApiCache {
   data: unknown;

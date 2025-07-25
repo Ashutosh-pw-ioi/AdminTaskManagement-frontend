@@ -1,76 +1,47 @@
-// createutils/taskHandlers.ts
-import { TransformedTask, FormTask } from "./types";
-import { createDailyTask, updateDailyTask, deleteDailyTask } from "./apiClient";
-import { clearCache } from "./cache";
-import { getErrorMessage } from "./errorHandlers";
 
-type SetError = (error: string | null) => void;
-type SetTasks = React.Dispatch<React.SetStateAction<TransformedTask[]>>;
-type RefreshTasks = () => Promise<TransformedTask[]>;
+export interface Operator {
+  id: string | number;
+  name: string;
+}
 
-export const createHandleAddTask = (
-  refreshTasks: RefreshTasks,
-  setError: SetError,
-  setIsAddModal: (isOpen: boolean) => void
-) => {
-  return async (task: FormTask) => {
-    try {
-      await createDailyTask(task);
-      await refreshTasks();
-      setIsAddModal(false);
-      setError(null);
-    } catch (err: unknown) {
-      setError(getErrorMessage(err));
-    }
-  };
-};
+export interface DefaultTask {
+  title: string;
+  description?: string;
+}
 
-export const createHandleEdit = (
-  refreshTasks: RefreshTasks,
-  setError: SetError
-) => {
-  return async (updatedTask: TransformedTask) => {
-    try {
-      await updateDailyTask(updatedTask);
-      await refreshTasks();
-      setError(null);
-    } catch (err: unknown) {
-      setError(getErrorMessage(err));
-    }
-  };
-};
+export interface TaskFromAPI {
+  id: string | number;
+  defaultTask: DefaultTask;
+  priority: string;
+  status: string;
+  operators: Operator[];
+  defaultTaskId: string | number;
+  isCompleted: boolean;
+  taskDate: string;
+}
 
-export const createHandleDelete = (
-  setTasks: SetTasks,
-  setError: SetError,
-  refreshTasks: RefreshTasks
-) => {
-  return (id: string | number) => {
-    (async () => {
-      try {
-        await deleteDailyTask(id);
-        setTasks((prev) => prev.filter((task) => task.id !== id));
-        clearCache();
-        setError(null);
-      } catch (err: unknown) {
-        setError(getErrorMessage(err));
-        refreshTasks();
-      }
-    })();
-  };
-};
+export interface TransformedTask {
+  id: string | number;
+  title: string;
+  description: string;
+  priority: string;
+  status: string;
+  assigned_to: string[];
+  defaultTaskId: string | number;
+  operatorIds: (string | number)[];
+  isCompleted: boolean;
+  taskDate: string;
+}
 
-export const createHandleTableEdit = (
-  tasks: TransformedTask[],
-  handleEdit: (task: TransformedTask) => Promise<void>
-) => {
-  return (item: unknown) => {
-    if (typeof item === "object" && item !== null && "id" in item) {
-      const { id } = item as { id: string | number };
-      const originalTask = tasks.find(t => t.id === id);
-      if (originalTask) {
-        handleEdit(originalTask);
-      }
-    }
-  };
-};
+export interface FormTask {
+  defaultTaskId: string | number;
+  operatorIds: (string | number)[];
+  priority: string;
+  status: string;
+}
+
+export interface ApiCache {
+  data: TransformedTask[] | null;
+  timestamp: number | null;
+  promise: Promise<TransformedTask[]> | null;
+}
