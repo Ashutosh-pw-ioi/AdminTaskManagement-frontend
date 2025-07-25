@@ -26,6 +26,8 @@ export const useDataFetcher = (): UseDataFetcherReturn => {
     COMPLETED: 0
   });
   const [completionData, setCompletionData] = useState<CompletionRateData | null>(null);
+
+
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -63,6 +65,7 @@ export const useDataFetcher = (): UseDataFetcherReturn => {
       if (!mountedRef.current) return;
 
       const [priorityResult, statusResult, completionResult] = results;
+      console.log("Completed Tasks",completionResult.value)
 
       if (priorityResult.status === 'fulfilled' && priorityResult.value.success) {
         setPriorityData(priorityResult.value.data);
@@ -72,8 +75,8 @@ export const useDataFetcher = (): UseDataFetcherReturn => {
         setStatusData(statusResult.value.data);
       }
 
-      if (completionResult.status === 'fulfilled' && completionResult.value.success) {
-        setCompletionData(completionResult.value.data);
+      if (completionResult.status === 'fulfilled' && completionResult.status) {
+        setCompletionData(completionResult.value);
       }
 
       const failedRequests = results.filter(result => result.status === 'rejected');

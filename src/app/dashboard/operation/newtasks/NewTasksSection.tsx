@@ -1,6 +1,5 @@
 "use client";
-
-import React from "react";
+import React, { useMemo } from "react";
 import EmptyList from "../EmptyList";
 import LoadingState from "../dailytasks/utils/LoadingState";
 import ErrorState from "../dailytasks/utils/ErrorState";
@@ -8,6 +7,15 @@ import TaskHeader from "../dailytasks/utils/TaskHeader";
 import TaskSection from "./utils/TaskSection";
 import { useNewTaskManagement } from "./utils/useNewTaskManagement";
 import { getNewTaskTableProps } from "./utils/newTaskUtils";
+
+// Add this date formatting function
+const formatDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  const day = date.getDate();
+  const month = date.toLocaleDateString('en-US', { month: 'short' }).toLowerCase();
+  const year = date.getFullYear();
+  return `${day} ${month} ${year}`;
+};
 
 const NewTasksSection: React.FC = () => {
   const {
@@ -23,6 +31,21 @@ const NewTasksSection: React.FC = () => {
   } = useNewTaskManagement();
 
   const tableProps = getNewTaskTableProps();
+
+  // Format tasks with formatted due_date
+  const formattedTaskCategories = useMemo(() => {
+    const formatTaskArray = (tasks: any[]) => 
+      tasks.map(task => ({
+        ...task,
+        due_date: task.due_date ? formatDate(task.due_date) : 'No due date'
+      }));
+
+    return {
+      upcoming: formatTaskArray(taskCategories.upcoming),
+      overdue: formatTaskArray(taskCategories.overdue),
+      completed: formatTaskArray(taskCategories.completed),
+    };
+  }, [taskCategories]);
 
   // Loading state
   if (loading) {
@@ -49,9 +72,9 @@ const NewTasksSection: React.FC = () => {
   }
 
   // Check if there are any tasks
-  const totalTasks = 
-    taskCategories.upcoming.length + 
-    taskCategories.overdue.length + 
+  const totalTasks =
+    taskCategories.upcoming.length +
+    taskCategories.overdue.length +
     taskCategories.completed.length;
 
   // Empty state
@@ -77,7 +100,7 @@ const NewTasksSection: React.FC = () => {
         {/* Upcoming Tasks */}
         <TaskSection
           title="Upcoming Tasks"
-          tasks={taskCategories.upcoming}
+          tasks={formattedTaskCategories.upcoming}
           count={taskCategories.upcoming.length}
           bgColor="bg-green-50"
           borderColor="border-green-200"
@@ -90,7 +113,7 @@ const NewTasksSection: React.FC = () => {
         {/* Overdue Tasks */}
         <TaskSection
           title="Overdue Tasks"
-          tasks={taskCategories.overdue}
+          tasks={formattedTaskCategories.overdue}
           count={taskCategories.overdue.length}
           bgColor="bg-red-50"
           borderColor="border-red-200"
@@ -106,7 +129,7 @@ const NewTasksSection: React.FC = () => {
         {/* Completed Tasks */}
         <TaskSection
           title="Completed Tasks"
-          tasks={taskCategories.completed}
+          tasks={formattedTaskCategories.completed}
           count={taskCategories.completed.length}
           bgColor="bg-blue-50"
           borderColor="border-blue-200"

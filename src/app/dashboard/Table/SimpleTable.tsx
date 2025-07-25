@@ -1,40 +1,22 @@
-import React, { useState, useMemo, useEffect } from "react";
-import { Edit, Trash2, Search, ChevronDown } from "lucide-react";
+import React, { useState } from "react";
+import { Edit, Trash2, Search, ChevronRight, ChevronDown } from "lucide-react";
 import EditModal from "./EditModal";
 import DeleteModal from "./DeleteModal";
 
-interface TableItem {
-  id: string | number;
-  [key: string]: string | number | boolean | string[] | number[];
+// Import types and utils
+import { SimpleTableProps, TableItem } from "./simpleTableUtils/types";
+import { useTableState, useModalState, useDropdownState } from "./simpleTableUtils/tableHooks";
+import { updateItemInData, removeItemFromData, updateItemField, getItemDisplayName } from "./simpleTableUtils/tableUtils";
+import { CellRenderer } from "./simpleTableUtils/TableComponents";
+
+// Extended interface to include editableFields
+interface ExtendedSimpleTableProps extends SimpleTableProps {
+  editableFields?: string[]; // New prop for controlling editable fields in EditModal
+  userRole?: string; // New prop to control visibility of edit/delete actions
+  dateFields?: string[]; // Optional prop for date fields
 }
 
-interface Column {
-  key: string;
-  label: string;
-}
-
-interface DropdownOption {
-  value: string;
-  label: string;
-}
-
-interface DropdownField {
-  field: string;
-  options: DropdownOption[];
-}
-
-interface SimpleTableProps {
-  data: TableItem[];
-  onEdit?: (item: TableItem) => void;
-  onDelete?: (id: string | number) => void;
-  badgeFields?: string[];
-  searchFields?: string[];
-  itemsPerPage: number;
-  arrayFields?: string[];
-  dropdownFields?: DropdownField[];
-}
-
-const SimpleTable: React.FC<SimpleTableProps> = ({
+const SimpleTable: React.FC<ExtendedSimpleTableProps> = ({
   data = [],
   onEdit,
   onDelete,
@@ -43,108 +25,73 @@ const SimpleTable: React.FC<SimpleTableProps> = ({
   itemsPerPage,
   arrayFields = [],
   dropdownFields = [],
+  editableFields = [], // New prop with default empty array
+  dateFields = [], // New prop for date fields
+  userRole = "admin", // Default user role
 }) => {
-  const [editItem, setEditItem] = useState<TableItem | null>(null);
-  const [deleteId, setDeleteId] = useState<string | number | null>(null);
-  const [itemToDelete, setItemToDelete] = useState<TableItem | null>(null);
-  const [search, setSearch] = useState("");
-  const [tableData, setTableData] = useState<TableItem[]>(data);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [openDropdowns, setOpenDropdowns] = useState<Set<string>>(new Set());
+  // Custom hooks for state management
+  const {
+    tableData,
+    setTableData,
+    search,
+    setSearch,
+    currentPage,
+    setCurrentPage,
+    columns,
+    filteredData,
+    paginatedData,
+  } = useTableState(data, itemsPerPage, searchFields);
 
-  useEffect(() => {
-    setTableData(data);
-  }, [data]);
+  const {
+    editItem,
+    deleteId,
+    itemToDelete,
+    openEditModal,
+    closeEditModal,
+    openDeleteModal,
+    closeDeleteModal,
+  } = useModalState();
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, data]);
+  const { openDropdowns, toggleDropdown } = useDropdownState();
+  
+  // Mobile state management
+  const [expandedRows, setExpandedRows] = useState<Set<string | number>>(new Set());
 
-  const columns = useMemo<Column[]>(() => {
-    if (!data.length) return [];
-    return Object.keys(data[0])
-      .filter((key) => key !== "id") // Filter out the 'id' field
-      .map((key) => ({
-        key,
-        label:
-          key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, " $1"),
-      }));
-  }, [data]);
+  // Helper function to generate a safe key
+  const getSafeKey = (item: TableItem, index: number): string => {
+    if (item.id !== null && item.id !== undefined && !Number.isNaN(item.id)) {
+      return String(item.id);
+    }
+    return `item-${index}`;
+  };
 
-  const filteredData = useMemo(() => {
-    if (!search) return tableData;
-
-    return tableData.filter((item) => {
-      const fieldsToSearch = searchFields.length
-        ? searchFields
-        : Object.keys(item);
-      return fieldsToSearch.some((field) => {
-        const value = item[field];
-        // Handle array fields in search
-        if (Array.isArray(value)) {
-          return value.some((element) =>
-            String(element ?? "")
-              .toLowerCase()
-              .includes(search.toLowerCase())
-          );
-        }
-        return String(value ?? "")
-          .toLowerCase()
-          .includes(search.toLowerCase());
-      });
+  const toggleRowExpansion = (itemId: string | number) => {
+    setExpandedRows(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId);
+      } else {
+        newSet.add(itemId);
+      }
+      return newSet;
     });
-  }, [tableData, search, searchFields]);
-
-  const paginatedData = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredData.slice(start, start + itemsPerPage);
-  }, [filteredData, currentPage, itemsPerPage]);
-
-  const getBadgeColor = (value: string) => {
-    const colors: Record<string, string> = {
-      active: "bg-green-100 text-green-800",
-      inactive: "bg-red-100 text-red-800",
-      pending: "bg-yellow-100 text-yellow-800",
-      "in progress": "bg-blue-100 text-blue-800",
-      completed: "bg-green-100 text-green-800",
-      high: "bg-red-100 text-red-800",
-      medium: "bg-yellow-100 text-yellow-800",
-      low: "bg-green-100 text-green-800",
-    };
-    return colors[value.toLowerCase()] || "bg-gray-100 text-gray-800";
   };
 
-  const handleEdit = (item: TableItem) => {
-    setEditItem({ ...item });
-  };
-
+  // Event handlers
   const handleSaveEdit = (updatedItem: TableItem) => {
-    const updated = tableData.map((item) =>
-      item.id === updatedItem.id ? updatedItem : item
-    );
+    const updated = updateItemInData(tableData, updatedItem);
     setTableData(updated);
     onEdit?.(updatedItem);
-    setEditItem(null);
-  };
-
-  const handleDelete = (item: TableItem) => {
-    setDeleteId(item.id);
-    setItemToDelete(item);
+    closeEditModal();
   };
 
   const handleConfirmDelete = () => {
     if (deleteId === null) return;
 
-    const updated = tableData.filter((item) => item.id !== deleteId);
+    const updated = removeItemFromData(tableData, deleteId);
     setTableData(updated);
     onDelete?.(deleteId);
-    setDeleteId(null);
-    setItemToDelete(null);
-  };
-
-  const handleCancelDelete = () => {
-    setDeleteId(null);
-    setItemToDelete(null);
+    closeDeleteModal();
   };
 
   const handleDropdownChange = (
@@ -152,9 +99,7 @@ const SimpleTable: React.FC<SimpleTableProps> = ({
     field: string,
     value: string
   ) => {
-    const updated = tableData.map((item) =>
-      item.id === itemId ? { ...item, [field]: value } : item
-    );
+    const updated = updateItemField(tableData, itemId, field, value);
     setTableData(updated);
 
     const updatedItem = updated.find((item) => item.id === itemId);
@@ -163,127 +108,127 @@ const SimpleTable: React.FC<SimpleTableProps> = ({
     }
   };
 
-  const toggleDropdown = (dropdownId: string) => {
-    setOpenDropdowns((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(dropdownId)) {
-        newSet.delete(dropdownId);
-      } else {
-        newSet.add(dropdownId);
-      }
-      return newSet;
-    });
-  };
-
-  const getDropdownConfig = (fieldKey: string) => {
-    return dropdownFields.find((df) => df.field === fieldKey);
-  };
-
-  const renderCell = (item: TableItem, column: Column) => {
-    const value = item[column.key];
-    const dropdownConfig = getDropdownConfig(column.key);
-
-    if (dropdownConfig) {
-      const dropdownId = `${item.id}-${column.key}`;
-      const isOpen = openDropdowns.has(dropdownId);
-
-      return (
-        <div className="relative">
-          <button
-            onClick={() => toggleDropdown(dropdownId)}
-            className={`flex items-center justify-between min-w-[110px] px-2 py-1 text-xs rounded-full border ${getBadgeColor(
-              String(value)
-            )} hover:opacity-80 transition-opacity`}
-          >
-            <span>{String(value)}</span>
-            <ChevronDown
-              className={`w-3 h-3 transition-transform ${
-                isOpen ? "rotate-180" : ""
-              }`}
-            />
-          </button>
-
-          {isOpen && (
-            <div className="absolute top-full left-0 mt-1 bg-white border rounded-lg shadow-lg z-10 min-w-[120px]">
-              {dropdownConfig.options.map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => {
-                    handleDropdownChange(item.id, column.key, option.value);
-                    toggleDropdown(dropdownId);
-                  }}
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg"
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    if (arrayFields.includes(column.key) && Array.isArray(value)) {
-      return (
-        <div className="flex flex-wrap gap-1">
-          {value.map((element, index) => (
-            <span
-              key={index}
-              className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full"
-            >
-              {String(element)}
-            </span>
-          ))}
-        </div>
-      );
-    }
-
-    if (badgeFields.includes(column.key)) {
-      return (
-        <div
-          className={`py-1 px-2 text-xs rounded-full text-center ${getBadgeColor(
-            String(value)
-          )}`}
-        >
-          {String(value)}
-        </div>
-      );
-    }
-
-    return String(value);
-  };
-
-  const getItemDisplayName = (item: TableItem) => {
-    const nameFields = ["name", "title", "email", "username"];
-    for (const field of nameFields) {
-      if (item[field]) {
-        return String(item[field]);
-      }
-    }
-    return `Record #${item.id}`;
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (!(event.target as Element).closest(".relative")) {
-        setOpenDropdowns(new Set());
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
+  // Early return for empty data
   if (!data.length) {
     return (
-      <div className="p-8 text-center text-gray-500">No data available</div>
+      <div className="p-4 sm:p-8 text-center text-gray-500">No data available</div>
     );
   }
+
+  // Mobile Card Component
+  const MobileCard = ({ item, index }: { item: TableItem, index: number }) => {
+    const safeId = getSafeKey(item, index);
+    const isExpanded = expandedRows.has(safeId);
+    const primaryField = columns[0];
+    const secondaryFields = columns.slice(1);
+    
+    return (
+      <div className="bg-white border rounded-lg p-4 mb-3 shadow-sm w-full overflow-hidden">
+        {/* Primary row - always visible */}
+        <div 
+          className="flex items-start justify-between cursor-pointer gap-3"
+          onClick={() => toggleRowExpansion(safeId)}
+        >
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <div className="font-medium text-gray-900 break-words">
+              {primaryField && (
+                <div className="w-full overflow-hidden">
+                  <CellRenderer
+                    item={item}
+                    column={primaryField}
+                    badgeFields={badgeFields}
+                    arrayFields={arrayFields}
+                    dropdownFields={dropdownFields}
+                    openDropdowns={openDropdowns}
+                    onToggleDropdown={toggleDropdown}
+                    onDropdownChange={handleDropdownChange}
+                  />
+                </div>
+              )}
+            </div>
+            {/* Show first secondary field as subtitle */}
+            {secondaryFields[0] && (
+              <div className="text-sm text-gray-500 mt-1 break-words">
+                 {String(item[secondaryFields[0].key])}
+              </div>
+            )}
+          </div>
+          
+          <div className="flex items-center space-x-2 flex-shrink-0">
+            {/* Action buttons */}
+            {(onEdit || onDelete) && (
+              <div className="flex space-x-1">
+                {onEdit && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEditModal(item);
+                    }}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded flex-shrink-0"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </button>
+                )}
+                {onDelete && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openDeleteModal(item);
+                    }}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded flex-shrink-0"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            )}
+            
+            {/* Expand/Collapse icon */}
+            {secondaryFields.length > 1 && (
+              <div className="text-gray-400 flex-shrink-0">
+                {isExpanded ? (
+                  <ChevronDown className="w-5 h-5" />
+                ) : (
+                  <ChevronRight className="w-5 h-5" />
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Expanded content */}
+        {isExpanded && secondaryFields.length > 1 && (
+          <div className="mt-4 pt-4 border-t space-y-3">
+            {secondaryFields.slice(1).map((column) => (
+              <div key={column.key} className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 sm:gap-3">
+                <span className="text-sm font-medium text-gray-600 flex-shrink-0 sm:w-1/3">
+                  {column.label}:
+                </span>
+                <div className="text-sm text-gray-900 flex-1 sm:text-right break-words overflow-hidden">
+                  <CellRenderer
+                    item={item}
+                    column={column}
+                    badgeFields={badgeFields}
+                    arrayFields={arrayFields}
+                    dropdownFields={dropdownFields}
+                    openDropdowns={openDropdowns}
+                    onToggleDropdown={toggleDropdown}
+                    onDropdownChange={handleDropdownChange}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <>
       <div className="bg-white shadow rounded-sm overflow-hidden">
-        <div className="p-4 border-b">
+        {/* Search Header */}
+        <div className="p-3 sm:p-4 border-b">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
@@ -291,36 +236,59 @@ const SimpleTable: React.FC<SimpleTableProps> = ({
               placeholder="Search..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 pr-4 py-2 border rounded-lg w-full"
+              className="pl-10 pr-4 py-2 border rounded-lg w-full text-sm sm:text-base"
             />
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile View */}
+        <div className="block sm:hidden overflow-hidden">
+          {paginatedData.length > 0 ? (
+            <div className="p-3">
+              {paginatedData.map((item, index) => (
+                <MobileCard key={getSafeKey(item, index)} item={item} index={index} />
+              ))}
+            </div>
+          ) : (
+            <div className="p-8 text-center text-gray-500">No records found</div>
+          )}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
                 {columns.map((column) => (
                   <th
                     key={column.key}
-                    className="text-left p-4 px-4 font-medium text-gray-700"
+                    className="text-left p-4 px-4 font-medium text-gray-700 text-sm"
                   >
                     {column.label}
                   </th>
                 ))}
                 {(onEdit || onDelete) && (
-                  <th className="text-left p-4 px-6 font-medium text-gray-700">
+                  <th className="text-left p-4 px-6 font-medium text-gray-700 text-sm">
                     Actions
                   </th>
                 )}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {paginatedData.map((item,index) => (
-                <tr key={index} className="hover:bg-gray-50">
+              {paginatedData.map((item, index) => (
+                <tr key={getSafeKey(item, index)} className="hover:bg-gray-50">
                   {columns.map((column) => (
                     <td key={column.key} className="py-4 px-[18px] text-gray-600 text-sm">
-                      {renderCell(item, column)}
+                      <CellRenderer
+                        item={item}
+                        column={column}
+                        badgeFields={badgeFields}
+                        arrayFields={arrayFields}
+                        dropdownFields={dropdownFields}
+                        openDropdowns={openDropdowns}
+                        onToggleDropdown={toggleDropdown}
+                        onDropdownChange={handleDropdownChange}
+                      />
                     </td>
                   ))}
                   {(onEdit || onDelete) && (
@@ -328,7 +296,7 @@ const SimpleTable: React.FC<SimpleTableProps> = ({
                       <div className="flex space-x-2">
                         {onEdit && (
                           <button
-                            onClick={() => handleEdit(item)}
+                            onClick={() => openEditModal(item)}
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded cursor-pointer"
                           >
                             <Edit className="w-4 h-4" />
@@ -336,7 +304,7 @@ const SimpleTable: React.FC<SimpleTableProps> = ({
                         )}
                         {onDelete && (
                           <button
-                            onClick={() => handleDelete(item)}
+                            onClick={() => openDeleteModal(item)}
                             className="p-2 text-red-600 hover:bg-red-50 rounded cursor-pointer"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -349,32 +317,38 @@ const SimpleTable: React.FC<SimpleTableProps> = ({
               ))}
             </tbody>
           </table>
+
+          {/* Desktop No Results Message */}
+          {filteredData.length === 0 && (
+            <div className="p-8 text-center text-gray-500">No records found</div>
+          )}
         </div>
 
-        {filteredData.length === 0 && (
-          <div className="p-8 text-center text-gray-500">No records found</div>
-        )}
-
+        {/* Pagination */}
         {filteredData.length > itemsPerPage && (
-          <div className="p-4 flex justify-between items-center">
-            <p className="text-sm text-gray-600">
+          <div className="p-3 sm:p-4 flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0 border-t">
+            <p className="text-xs sm:text-sm text-gray-600 text-center sm:text-left">
               Page {currentPage} of{" "}
               {Math.ceil(filteredData.length / itemsPerPage)}
+              <span className="hidden sm:inline">
+                {" "}({filteredData.length} total items)
+              </span>
             </p>
             <div className="flex space-x-2">
               <button
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage((prev) => prev - 1)}
-                className="px-3 py-1 border rounded disabled:opacity-50 cursor-pointer bg-[#1B3A6A] text-white"
+                className="px-3 py-2 text-sm border rounded disabled:opacity-50 cursor-pointer bg-[#1B3A6A] text-white disabled:bg-gray-300 disabled:cursor-not-allowed"
               >
-                Previous
+                <span className="hidden sm:inline">Previous</span>
+                <span className="sm:hidden">Prev</span>
               </button>
               <button
                 disabled={
                   currentPage === Math.ceil(filteredData.length / itemsPerPage)
                 }
                 onClick={() => setCurrentPage((prev) => prev + 1)}
-                className="px-3 py-1 border rounded disabled:opacity-50 cursor-pointer bg-[#1B3A6A] text-white"
+                className="px-3 py-2 text-sm border rounded disabled:opacity-50 cursor-pointer bg-[#1B3A6A] text-white disabled:bg-gray-300 disabled:cursor-not-allowed"
               >
                 Next
               </button>
@@ -383,20 +357,24 @@ const SimpleTable: React.FC<SimpleTableProps> = ({
         )}
       </div>
 
+      {/* Modals */}
       <EditModal
         isOpen={editItem !== null}
         item={editItem}
         columns={columns}
         onSave={handleSaveEdit}
-        onCancel={() => setEditItem(null)}
+        onCancel={closeEditModal}
         arrayFields={arrayFields}
+        editableFields={editableFields} // Pass the editableFields prop to EditModal
+        userRole={userRole}
+        dateFields={dateFields} 
       />
 
       <DeleteModal
         isOpen={deleteId !== null}
         itemName={itemToDelete ? getItemDisplayName(itemToDelete) : undefined}
         onConfirm={handleConfirmDelete}
-        onCancel={handleCancelDelete}
+        onCancel={closeDeleteModal}
       />
     </>
   );

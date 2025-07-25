@@ -34,7 +34,9 @@ export const transformTaskDistributionData = (completionData: CompletionRateData
 };
 
 export const generateMetricsData = (completionData: CompletionRateData | null): MetricData[] => {
+ 
   if (!completionData) {
+    
     return [
       {
         title: "Total Tasks",
@@ -58,7 +60,7 @@ export const generateMetricsData = (completionData: CompletionRateData | null): 
     {
       title: "Tasks Completed",
       value: completionData.completedTasks.toString(),
-      subtitle: `${completionData.completionRate.toFixed(1)}% of assigned tasks are done`,
+      subtitle: `${completionData.completedTasks.toFixed(1)}% of assigned tasks are done`,
     },
   ];
 };

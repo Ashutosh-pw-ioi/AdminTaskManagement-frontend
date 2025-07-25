@@ -98,7 +98,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const login = useCallback(async (email: string, password: string, role: string) => {
     try {
-      console.log("Attempting login with email:", email, "and role:", role);
+     
       const response = await axios.post(
         "http://localhost:8000/api/auth/login",
         {

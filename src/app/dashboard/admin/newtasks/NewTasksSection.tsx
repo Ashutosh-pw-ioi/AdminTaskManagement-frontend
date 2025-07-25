@@ -9,6 +9,14 @@ import { useAuth } from "@/src/app/contexts/AuthProvider";
 import { filterTasksForUI } from "./utils/taskUtils";
 import { createTaskService, invalidateCaches } from "./utils/taskService";
 import { Task, Operator, AuthContext, TableItem } from "./utils/types";
+import {
+  convertPriorityToBackend,
+  convertPriorityToFrontend,
+  convertStatusToBackend,
+  convertStatusToFrontend,
+  transformTaskFromBackend,
+  transformTaskToBackend
+} from "./utils/caseConversion";
 
 export default function NewTasksSection() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -65,7 +73,7 @@ export default function NewTasksSection() {
         setError(null);
         const fetched = await taskService.fetchTasks(forceRefresh);
         const transformed = fetched.map((task) => ({
-          ...task,
+          ...transformTaskFromBackend(task), // Convert backend format to frontend
           assigned_to: task.operators?.map((op) => op.name || op.id) || [],
           description: task.description || "No description provided.",
         }));
@@ -127,8 +135,8 @@ export default function NewTasksSection() {
           title: task.title || "",
           description: task.description || "",
           dueDate: task.dueDate || new Date().toISOString().split("T")[0],
-          priority: task.priority || "low",
-          status: task.status || "pending",
+          priority: convertPriorityToBackend(task.priority || "Low"), // Convert to backend format
+          status: convertStatusToBackend(task.status || "Pending"), // Convert to backend format
           adminId: task.adminId || user?.id || "",
           operatorIds: operatorIds,
         };
@@ -137,7 +145,7 @@ export default function NewTasksSection() {
         const newTask = response.data || response;
 
         const transformed = {
-          ...newTask,
+          ...transformTaskFromBackend(newTask), // Convert back to frontend format
           assigned_to:
             newTask.operators?.map((op: Operator) => op.name || op.id) ||
             getOperatorNamesByIds(operatorIds),
@@ -184,8 +192,8 @@ export default function NewTasksSection() {
             title: String(updatedItem.title || ""),
             description: String(updatedItem.description || ""),
             dueDate: String(updatedItem.dueDate || ""),
-            priority: String(updatedItem.priority || ""),
-            status: String(updatedItem.status || ""),
+            priority: convertPriorityToBackend(String(updatedItem.priority || "")), // Convert to backend format
+            status: convertStatusToBackend(String(updatedItem.status || "")), // Convert to backend format
             operatorIds,
           };
 
@@ -196,7 +204,11 @@ export default function NewTasksSection() {
               task.id === updatedItem.id
                 ? {
                     ...task,
-                    ...updateData,
+                    title: String(updatedItem.title || ""),
+                    description: String(updatedItem.description || ""),
+                    dueDate: String(updatedItem.dueDate || ""),
+                    priority: convertPriorityToFrontend(updateData.priority), // Convert back to frontend format for display
+                    status: convertStatusToFrontend(updateData.status), // Convert back to frontend format for display
                     assigned_to: Array.isArray(updatedItem.assigned_to)
                       ? updatedItem.assigned_to.map(String)
                       : [],
@@ -301,7 +313,7 @@ export default function NewTasksSection() {
       )}
 
       <button
-        className="fixed top-6 right-6 w-10 h-10 bg-[#1B3A6A] rounded-full flex items-center justify-center mb-4 cursor-pointer shadow-xl"
+        className="fixed top-18 sm:top-6 right-6 w-10 h-10 bg-[#1B3A6A] rounded-full flex items-center justify-center mb-4 cursor-pointer shadow-xl"
         onClick={handleAddClick}
       >
         <Plus className="w-5 h-5 text-[#D4E3F5]" />
@@ -309,7 +321,7 @@ export default function NewTasksSection() {
 
       {filteredTasksForUI.length > 0 ? (
         <div className="w-full">
-          <div className="text-3xl font-bold mb-8">New Tasks Management</div>
+          <div className="text-3xl mt-5  pr-10 sm:pr-0  sm:mt-0 font-bold mb-8">New Tasks Management</div>
           <SimpleTable
             data={filteredTasksForUI}
             onEdit={handleEdit}
@@ -318,6 +330,8 @@ export default function NewTasksSection() {
             itemsPerPage={4}
             badgeFields={["assigned_to", "status", "priority"]}
             arrayFields={["assigned_to"]}
+            editableFields={["title", "description", "dueDate", "priority", "status", "assigned_to"]}
+            dateFields={["dueDate"]}
           />
         </div>
       ) : (

@@ -15,10 +15,9 @@ return {
   status: task.status.toLowerCase().replace('_', ' '),
   assigned_by: task.admin.name,
   due_date: task.dueDate,
-  assigned_to: [],
-  assignedDate: '',
-  isOverdue: false,
-  isCompleted: false
+  
+ 
+  
 };
 };
 
@@ -26,7 +25,11 @@ return {
  * Convert table format status to API format
  */
 export const convertNewTaskStatusToApiFormat = (status: string): NewTaskStatus => {
-  return status.toUpperCase().replace(' ', '_') as NewTaskStatus;
+  console.log(`Converting status: ${status}`);
+  if(status === 'inprogress') {
+    return 'IN_PROGRESS';
+  }
+  return status.toUpperCase().replace(/ /g, '_') as NewTaskStatus;
 };
 
 /**
@@ -43,8 +46,8 @@ export const categorizeTasksByDueDate = (tasks: TransformedNewTask[]): TaskCateg
   tasks.forEach((task) => {
     const taskDueDate = new Date(task.due_date);
     taskDueDate.setHours(0, 0, 0, 0);
-
-    if (task.isCompleted) {
+    
+    if (task.status === "completed") {
       completed.push(task);
     } else if (taskDueDate < currentDate) {
       overdue.push(task);

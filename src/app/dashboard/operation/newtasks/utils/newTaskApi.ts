@@ -1,3 +1,4 @@
+import { stat } from 'fs';
 import { NewTaskApiResponse, NewTaskUpdateResponse, NewTaskStatus } from './newTaskTypes';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
@@ -20,7 +21,7 @@ let newTasksPromise: Promise<NewTaskApiResponse> | null = null;
 let cacheTimestamp: number = 0;
 
 /**
- * Cache duration (5 minutes)
+ * Cache duration (5 minutes)status
  */
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
@@ -74,7 +75,7 @@ export const fetchNewTasks = async (): Promise<NewTaskApiResponse> => {
         throw new Error('API returned success: false');
       }
 
-      // ✅ Cache the successful result
+      // ✅ Cache the successful result 
       newTasksCache = data;
       cacheTimestamp = Date.now();
 
@@ -113,10 +114,12 @@ export const updateNewTaskStatus = async (
   // ✅ Create and cache the update promise
   const updatePromise = (async () => {
     try {
+      const newStatus = status;
+      console.log(`Updating task ${taskId} to status: ${newStatus}`);
       const response = await fetch(`${API_BASE_URL}/api/operator/updateNewTask/${taskId}`, {
         method: 'PATCH',
         ...getApiConfig(),
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status: newStatus}),
       });
 
       if (!response.ok) {

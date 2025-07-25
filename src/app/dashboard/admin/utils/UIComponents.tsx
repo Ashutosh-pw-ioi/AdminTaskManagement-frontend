@@ -52,7 +52,7 @@ interface RefreshButtonProps {
 export const RefreshButton: React.FC<RefreshButtonProps> = ({ onRefresh, isRefreshing }) => (
   <button 
     onClick={onRefresh}
-    className="bg-[#1B3A6A] text-white cursor-pointer px-4 py-2 rounded-lg flex items-center space-x-2 disabled:opacity-50"
+    className="bg-[#1B3A6A] text-white cursor-pointer px-4 py-2 mt-10 sm:mt-0 rounded-lg flex items-center space-x-2 disabled:opacity-50"
     disabled={isRefreshing}
   >
     <svg className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">

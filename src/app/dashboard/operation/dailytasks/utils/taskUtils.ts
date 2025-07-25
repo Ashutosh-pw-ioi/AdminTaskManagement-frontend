@@ -15,12 +15,15 @@ export const transformTaskForTable = (task: DailyTask): TransformedTask => {
 
 
 export const convertStatusToApiFormat = (status: string): TaskStatus => {
+  if(status === 'inprogress') {
+    return 'IN_PROGRESS';
+  }
   return status.toUpperCase().replace(' ', '_') as TaskStatus;
 };
 
 
 export const convertStatusToTableFormat = (status: TaskStatus): string => {
-  return status.toLowerCase().replace('_', ' ');
+  return status.toLowerCase().replace('_', '');
 };
 
 export const findChangedTasks = (

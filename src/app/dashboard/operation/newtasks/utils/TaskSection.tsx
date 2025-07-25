@@ -43,7 +43,7 @@ const TaskSection: React.FC<TaskSectionProps> = ({
         <SimpleTable 
           itemsPerPage={0} data={tasks}
           {...(typeof tableProps === 'object' && tableProps !== null ? tableProps : {})}
-          onEdit={(item) => onEdit(item as TransformedNewTask)}        />
+          onEdit={(item) => onEdit(item as TransformedNewTask)} editableFields={["status"]}  userRole='operator'      />
       ) : (
         <p className={`${textColor.replace('800', '600')} italic`}>
           {emptyMessage}

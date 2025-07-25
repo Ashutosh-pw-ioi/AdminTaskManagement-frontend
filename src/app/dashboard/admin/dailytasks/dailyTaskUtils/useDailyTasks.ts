@@ -1,89 +1,47 @@
-// createutils/hooks/useDailyTasks.ts
-import { useState, useEffect, useCallback, useRef } from "react";
-import { TransformedTask } from "./types";
-import { fetchTodayDailyTasks } from "./apiClient";
-import { apiCache, isCacheValid, setCacheData, clearCache } from "./cache";
-import { getErrorMessage } from "./errorHandlers";
 
-export function useDailyTasks() {
-  const [tasks, setTasks] = useState<TransformedTask[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const mountedRef = useRef(true);
-  const requestIdRef = useRef(0);
+export interface Operator {
+  id: string | number;
+  name: string;
+}
 
-  const fetchTasks = useCallback(async (forceRefresh = false) => {
-    const currentRequestId = ++requestIdRef.current;
+export interface DefaultTask {
+  title: string;
+  description?: string;
+}
 
-    try {
-      setIsLoading(true);
-      setError(null);
+export interface TaskFromAPI {
+  id: string | number;
+  defaultTask: DefaultTask;
+  priority: string;
+  status: string;
+  operators: Operator[];
+  defaultTaskId: string | number;
+  isCompleted: boolean;
+  taskDate: string;
+}
 
-      // Check cache
-      if (!forceRefresh && isCacheValid()) {
-        setTasks(apiCache.data!);
-        setIsLoading(false);
-        return apiCache.data!;
-      }
+export interface TransformedTask {
+  id: string | number;
+  title: string;
+  description: string;
+  priority: string;
+  status: string;
+  assigned_to: string[];
+  defaultTaskId: string | number;
+  operatorIds: (string | number)[];
+  isCompleted: boolean;
+  taskDate: string;
+}
 
-      // Use existing promise if available
-      if (apiCache.promise && !forceRefresh) {
-        const cachedResult = await apiCache.promise;
-        if (mountedRef.current && currentRequestId === requestIdRef.current) {
-          setTasks(cachedResult);
-          setIsLoading(false);
-        }
-        return cachedResult;
-      }
+export interface FormTask {
+  defaultTaskId: string | number;
+  operatorIds: (string | number)[];
+  priority: string;
+  status: string;
+}
 
-      // Make new API request
-      const requestPromise = fetchTodayDailyTasks();
-      apiCache.promise = requestPromise;
-
-      const result = await requestPromise;
-      setCacheData(result);
-      
-      if (mountedRef.current && currentRequestId === requestIdRef.current) {
-        setTasks(result);
-      }
-
-      return result;
-
-    } catch (err: unknown) {
-      apiCache.promise = null;
-      
-      if (mountedRef.current && currentRequestId === requestIdRef.current) {
-        setError(getErrorMessage(err));
-        setTasks([]);
-      }
-      throw err;
-    } finally {
-      if (mountedRef.current && currentRequestId === requestIdRef.current) {
-        setIsLoading(false);
-      }
-    }
-  }, []);
-
-  const refreshTasks = useCallback(() => {
-    clearCache();
-    return fetchTasks(true);
-  }, [fetchTasks]);
-
-  useEffect(() => {
-    fetchTasks();
-    
-    return () => {
-      mountedRef.current = false;
-    };
-  }, [fetchTasks]);
-
-  return {
-    tasks,
-    isLoading,
-    error,
-    setTasks,
-    setError,
-    fetchTasks,
-    refreshTasks
-  };
+export interface ApiCache {
+  data: TransformedTask[] | null;
+  timestamp: number | null;
+  promise: Promise<TransformedTask[]> | null;
 }
