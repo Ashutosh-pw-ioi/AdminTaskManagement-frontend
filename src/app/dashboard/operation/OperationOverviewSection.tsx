@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import MetricCard from "../overviewComponents/MetricCard";
 import BarChartComponent from "../overviewComponents/BarChartComponent";
 import PieChartComponent from "../overviewComponents/PieChartComponent";
-import WeeklyTrendChart from "../overviewComponents/WeeklyTrendChart";
+
 
 // Utils imports
 import { useDataFetcher } from "./utils/useDataFetcher";
@@ -11,7 +11,7 @@ import {
   transformStatusData, 
   transformTaskDistributionData, 
   generateMetricsData, 
-  getWeeklyTrendData 
+ 
 } from "./utils/dataUtils";
 import { LoadingComponent, ErrorComponent, RefreshButton } from "./utils/uiComponents";
 
@@ -26,7 +26,7 @@ const OperationOverviewSection: React.FC = () => {
     isFetching
   } = useDataFetcher();
 
-  const weeklyTrendData = useMemo(() => getWeeklyTrendData(), []);
+ 
 
   const transformedPriorityData = useMemo(() => 
     transformPriorityData(priorityData), 
@@ -95,12 +95,12 @@ const OperationOverviewSection: React.FC = () => {
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4">
+        <div className="grid grid-cols-1 gap-6 mb-4">
           <BarChartComponent
             data={transformedPriorityData}
             title="Priority Distribution"
           />
-          <WeeklyTrendChart data={weeklyTrendData} title="Weekly Task Trend" />
+          {/* <WeeklyTrendChart data={weeklyTrendData} title="Weekly Task Trend" /> */}
         </div>
       </div>
     </div>

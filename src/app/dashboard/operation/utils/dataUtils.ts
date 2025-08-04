@@ -3,7 +3,7 @@ import {
   StatusData, 
   CompletionRateData, 
   ChartDataItem, 
-  WeeklyTrendDataItem, 
+  
   MetricData 
 } from './types';
 
@@ -65,12 +65,3 @@ export const generateMetricsData = (completionData: CompletionRateData | null): 
   ];
 };
 
-export const getWeeklyTrendData = (): WeeklyTrendDataItem[] => [
-  { day: "Mon", tasks: 18 },
-  { day: "Tue", tasks: 22 },
-  { day: "Wed", tasks: 15 },
-  { day: "Thu", tasks: 20 },
-  { day: "Fri", tasks: 25 },
-  { day: "Sat", tasks: 10 },
-  { day: "Sun", tasks: 5 },
-];

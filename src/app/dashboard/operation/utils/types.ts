@@ -46,10 +46,7 @@ export interface ChartDataItem {
   value: number;
 }
 
-export interface WeeklyTrendDataItem {
-  day: string;
-  tasks: number;
-}
+
 
 export interface MetricData {
   title: string;
