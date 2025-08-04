@@ -7,8 +7,9 @@ import TaskHeader from "../dailytasks/utils/TaskHeader";
 import TaskSection from "./utils/TaskSection";
 import { useNewTaskManagement } from "./utils/useNewTaskManagement";
 import { getNewTaskTableProps } from "./utils/newTaskUtils";
+import { TransformedNewTask } from "./utils";
 
-// Add this date formatting function
+
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
   const day = date.getDate();
@@ -34,7 +35,7 @@ const NewTasksSection: React.FC = () => {
 
   // Format tasks with formatted due_date
   const formattedTaskCategories = useMemo(() => {
-    const formatTaskArray = (tasks: any[]) => 
+    const formatTaskArray = (tasks: TransformedNewTask[]) => 
       tasks.map(task => ({
         ...task,
         due_date: task.due_date ? formatDate(task.due_date) : 'No due date'
@@ -47,7 +48,7 @@ const NewTasksSection: React.FC = () => {
     };
   }, [taskCategories]);
 
-  // Loading state
+
   if (loading) {
     return (
       <div className="p-4">
@@ -59,7 +60,6 @@ const NewTasksSection: React.FC = () => {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <div className="p-4">
@@ -71,13 +71,13 @@ const NewTasksSection: React.FC = () => {
     );
   }
 
-  // Check if there are any tasks
+
   const totalTasks =
     taskCategories.upcoming.length +
     taskCategories.overdue.length +
     taskCategories.completed.length;
 
-  // Empty state
+
   if (totalTasks === 0) {
     return (
       <div className="min-h-screen">
@@ -86,7 +86,6 @@ const NewTasksSection: React.FC = () => {
     );
   }
 
-  // Main content
   return (
     <div className="p-4">
       <div className="w-full max-w-7xl mx-auto space-y-8">

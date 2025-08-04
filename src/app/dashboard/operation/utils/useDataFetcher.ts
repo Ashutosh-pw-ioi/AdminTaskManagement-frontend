@@ -65,7 +65,7 @@ export const useDataFetcher = (): UseDataFetcherReturn => {
       if (!mountedRef.current) return;
 
       const [priorityResult, statusResult, completionResult] = results;
-      console.log("Completed Tasks",completionResult.value)
+      
 
       if (priorityResult.status === 'fulfilled' && priorityResult.value.success) {
         setPriorityData(priorityResult.value.data);
