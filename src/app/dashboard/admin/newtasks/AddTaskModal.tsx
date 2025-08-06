@@ -17,6 +17,8 @@ interface AddTaskModalProps {
     assigned_to: string[];
   }) => void;
 }
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+
 
 const AddTaskModal: React.FC<AddTaskModalProps> = ({
   isOpen,
@@ -40,7 +42,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
     try {
       setLoading(true);
       setError("");
-      const response = await fetch("http://localhost:8000/api/admin/getOperators",
+      const response = await fetch(`${API_BASE_URL}/api/admin/getOperators`,
          {
   credentials: "include"
 }

@@ -10,6 +10,7 @@ import {
 } from "react";
 import axios from "axios";
 import { usePathname } from "next/navigation";
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 interface User {
   id: string;
@@ -65,7 +66,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       authCheckInProgress.current = true;
       setIsLoading(true);
       
-      const response = await axios.get("http://localhost:8000/api/auth/check", {
+      const response = await axios.get(`${API_BASE_URL}/api/auth/check`, {
         withCredentials: true,
         timeout: 10000,
       });
@@ -100,7 +101,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
      
       const response = await axios.post(
-        "http://localhost:8000/api/auth/login",
+        `${API_BASE_URL}/api/auth/login`,
         {
           email: email.trim(),
           password: password.trim(),
@@ -141,7 +142,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const logout = useCallback(async () => {
     try {
       await axios.post(
-        "http://localhost:8000/api/auth/logout",
+        `${API_BASE_URL}/api/auth/logout`,
         {},
         {
           withCredentials: true,

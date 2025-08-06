@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X, ChevronDown } from "lucide-react";
-
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 interface TableItem {
   id: string | number;
   [key: string]: string | number | string[] | number[] | boolean;
@@ -162,7 +162,7 @@ const EditModal: React.FC<EditModalProps> = ({
 
     setIsLoadingOperators(true);
     try {
-      const response = await fetch("http://localhost:8000/api/admin/getOperators", {
+      const response = await fetch(`${API_BASE_URL}/api/admin/getOperators`, {
         method: "GET",
         credentials: "include",
         headers: {

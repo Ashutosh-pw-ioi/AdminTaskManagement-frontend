@@ -10,8 +10,10 @@ import {
 } from './types';
 import { TaskUtils } from './taskUtils';
 import { TaskCache } from './taskCache';
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
-const API_BASE_URL = 'http://localhost:8000/api/admin';
+
+const API_BASE_URL = `${API_URL}/api/admin`;
 
 export class TaskApi {
   private static ongoingRequests = new Set<string>();

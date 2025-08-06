@@ -1,5 +1,7 @@
 // utils/taskService.ts
 import { ApiCache, Operator, Task, TaskData } from "./types";
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+
 
 const CACHE_DURATION = 5 * 60 * 1000;
 
@@ -12,7 +14,7 @@ export const invalidateCaches = () => {
 };
 
 export const createTaskService = (getAuthHeaders: () => Record<string, string>) => {
-  const API_BASE_URL = "http://localhost:8000/api/admin";
+  const API_BASE_URL = `${API_URL}/api/admin`;
 
   return {
     async fetchOperators(forceRefresh = false): Promise<Operator[]> {

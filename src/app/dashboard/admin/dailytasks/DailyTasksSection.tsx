@@ -4,8 +4,10 @@ import EmptyList from "../EmptyList";
 import { Plus } from "lucide-react";
 import SimpleTable from "../../Table/SimpleTable";
 import AddTaskModal from "./AddTaskModal";
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
-const API_BASE_URL = "http://localhost:8000/api/admin";
+
+const API_BASE_URL = `${API_URL}/api/admin`;
 
 interface Operator {
   id: string | number;
@@ -365,7 +367,7 @@ export default function DailyTasksSection() {
       }
 
       // Fetch operators to map operator names to IDs
-      const operatorsResponse = await fetch("http://localhost:8000/api/admin/getOperators", {
+      const operatorsResponse = await fetch(`${API_URL}/api/admin/getOperators`, {
         method: "GET",
         credentials: "include",
         headers: {
