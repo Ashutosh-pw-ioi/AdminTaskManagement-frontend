@@ -1,11 +1,13 @@
 
 import { ApiResponse } from './types';
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+
 
 export const getApiBaseUrl = (): string => {
   if (typeof window !== 'undefined') {
-    return process.env.REACT_APP_API_BASE_URL || "http://localhost:8000/api/admin";
+    return process.env.REACT_APP_API_BASE_URL || `${API_URL}/api/admin`;
   }
-  return process.env.API_BASE_URL || "http://localhost:8000/api/admin";
+  return process.env.API_BASE_URL || `${API_URL}/api/admin`;
 };
 
 export const API_BASE_URL = getApiBaseUrl();
